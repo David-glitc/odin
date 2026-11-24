@@ -36,6 +36,11 @@ Actions: Copy report, Copy task text, Copy link to a task (`#t5`), Replay (steps
 Without `--summary`, Odin writes a short factual summary from the data. A better one comes from you: `{"goal": "one plain line", "paragraphs": ["Short active sentence.[3] Next sentence.[5]"]}`. `[n]` is a task number and becomes a footnote link. Write in ASD-STE100 style (`references/asd-ste100.md`): one idea per sentence, active voice, numbers with units. Say what the work did and why, not how many tools ran.
 Output is an artifact-ready fragment. `--standalone` writes a full page for hosting. `work_state.py --coverage` prints the totals, so you can check that nothing was dropped.
 
+## Choose the look
+Do not ship the same look every time. Pick it from the work and say why in one sentence. `--style style.json` (or `auto`, the default, which varies by project name; `default` is the gold Odin look):
+`{"palette": "gold|ember|ocean|forest|violet|ink", "font": "serif|sans|mono", "motif": "ring|grid|dots|none", "density": "airy|compact", "order": ["hero","needs","strip","chips","why","live"], "why": "One sentence."}`
+Guide: incident or failure work, `ember`, compact, `needs` first. Research or reading, `ocean` or `forest`, airy. Long runs with many tasks, compact, `strip` early. Design or writing, `violet`, airy. Strict or formal work, `ink`. Omit a block from `order` to hide it; `hero` always shows. Only these values work, and every palette meets WCAG AA contrast in both themes. With `--live` the agent can change the look without a republish by writing the same object to `live/style`.
+
 ## Two-way: live view and quick actions
 With `--live` the artifact shows live progress and gives the user prefilled action buttons (no free text). Read `references/live.md` first. In short: publish with the `db`, `user` and `comments` capabilities listed there. At the start of every turn and at each milestone, read `inbox` rows with `status == queued` through `ArtifactData` (one query, no polling), act on them, set them to `seen` then `done` with a short `reply`, and keep `live/now` current. The page updates by itself, so you do not republish for progress. Rows cannot interrupt a running step, and the inline widget's `sendPrompt` stays the way to get an instant reply.
 

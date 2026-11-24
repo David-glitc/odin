@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""build_work_view.py <session|id|project-dir> [--all | --last N] [--name NAME] [--goal TEXT] [--summary summary.json] [-o out.html] [--standalone] [--live]
+"""build_work_view.py <session|id|project-dir> [--all | --last N] [--name NAME] [--goal TEXT] [--summary summary.json] [-o out.html] [--standalone] [--live] [--style style.json|auto|default]
 --summary takes {"goal": "...", "paragraphs": ["Plain sentence.[3] Another.[5]"]}: write it yourself in short STE sentences; [n] links to task n.
+--style takes {"palette": gold|ember|ocean|forest|violet|ink, "font": serif|sans|mono, "motif": ring|grid|dots|none, "density": airy|compact, "order": [live,hero,chips,needs,why,strip], "why": "one sentence"}. The default is auto: a look picked from the project name. Choose one yourself from the work.
 --live turns on the Inbox tab, the Live now card, answer buttons and comments. Publish it with the capabilities in references/live.md.
 Without --summary Odin writes a short factual summary from the data.
 Fills assets/work_view.html with the WORK of a session (goals, steps, findings, decisions, outputs).
@@ -29,6 +30,15 @@ def trace(notes, n=6):
     rest = [x for x in notes if x['k'] != 'd'][:max(0, n - len(dec))]
     pick = sorted(dec + rest, key=lambda x: x['t'])
     return [[x['x'][:230], 'd' if x['k'] == 'd' else 'n'] for x in pick]
+
+PALETTES = ['gold', 'ember', 'ocean', 'forest', 'violet', 'ink']
+
+def auto_style(name, ntasks):
+    """A different look per project, so runs do not all look alike. The agent should override this with --style."""
+    import hashlib
+    h = int(hashlib.md5(name.encode()).hexdigest()[:8], 16)
+    return dict(palette=PALETTES[h % 6], motif=['ring', 'grid', 'dots', 'ring', 'grid', 'none'][(h >> 3) % 6],
+                font=['serif', 'serif', 'sans'][(h >> 6) % 3], density='compact' if ntasks > 40 else 'airy', why='')
 
 def slim(d):
     fi = [dict(t=round(f['t']), x=f['x'][:300]) for f in d['findings'][-3:]]
@@ -77,7 +87,9 @@ if __name__ == '__main__':
     if paras is None: paras = auto_summary(sl, len(K))
     if not goal:   # first request when the run is short (one goal); the latest request when it spans many days
         goal = sl[0]['g'] if (sl[-1]['e'] - sl[0]['t']) < 2880 else f"The latest request: {sl[-1]['g']}"
-    meta = dict(name=name + ' work view', base=base, total=len(K), note=note, goal=goal, paras=paras, live='--live' in a)
+    sty = a[a.index('--style') + 1] if '--style' in a else 'auto'
+    style = auto_style(name, len(K)) if sty == 'auto' else {} if sty == 'default' else json.load(open(sty))
+    meta = dict(name=name + ' work view', base=base, total=len(K), note=note, goal=goal, paras=paras, live='--live' in a, style=style)
     tpl = open(os.path.join(os.path.dirname(__file__), '..', 'assets', 'work_view.html')).read()
     esc = lambda o: redact(json.dumps(o, separators=(',', ':'), ensure_ascii=False)).replace('</', '<\\/')
     h = tpl.replace('/*TITLE*/', f'{name} Work View').replace('/*META*/{"name":"Work","base":0,"total":0,"note":""}', esc(meta)).replace('/*DATA*/[]', esc(sl))

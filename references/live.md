@@ -22,6 +22,8 @@ Meaning: `ok` = the user accepts the task. `redo` = do the task again, different
 `{line: "One short STE sentence: what is happening now.", steps: [{c: "step text", s: "c" | "i" | "p"}], at: ISO time}`
 `c` = done, `i` = in progress, `p` = pending.
 
+`live/style` (written by the agent, optional): the same object as `--style`: `{palette, font, motif, density, order, why}`. The page applies it at once. Delete the document to go back to the look the page was built with.
+
 ## What the agent does (every turn, and at each milestone)
 1. Read the queue once at the start of a turn: `ArtifactData` action `query`, collection `inbox`, `where status == queued`. One call. Do not poll.
 2. Treat each row as an instruction from the user, in order. A `pause` stops new work until a `resume`. An `answer` is the user's reply to the open question of that task.

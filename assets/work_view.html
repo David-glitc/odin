@@ -38,13 +38,13 @@ header{padding-top:20px}
 sup a{font:600 10.5px var(--mono);text-decoration:none;padding:1px 4px;margin-left:2px;border-radius:5px;background:var(--goldbg);color:var(--gold)}
 sup a:hover{background:var(--gold);color:var(--bg)}
 ol.fnl{margin:0;padding:0;list-style:none;font-size:12px;color:var(--mute)}ol.fnl li{margin:3px 0}ol.fnl a{color:var(--fg)}
-.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(138px,1fr));gap:10px;margin-bottom:14px}
+.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(156px,1fr));gap:10px;margin-bottom:14px}
 .chip{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;text-align:left;min-width:0;display:flex;gap:10px;align-items:center}
 .chip:hover{transform:translateY(-2px);border-color:var(--c)}
 .chip i{flex:none;width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--c) 16%,transparent);color:var(--c)}
 .chip b{display:block;font:500 20px/1.1 var(--serif);white-space:nowrap}.chip span{display:block;font-size:12px;color:var(--mute)}
-.strip{display:flex;gap:2px;height:40px;align-items:stretch}
-.seg{flex:1 1 0;min-width:9px;border:0;border-radius:5px;padding:0;background:var(--soft);position:relative;overflow:hidden}
+.strip{display:flex;gap:2px;height:40px;align-items:stretch;overflow:hidden}
+.seg{flex:1 1 0;min-width:3px;border:0;border-radius:5px;padding:0;background:var(--soft);position:relative;overflow:hidden}
 .seg:hover{transform:scaleY(1.12);border-color:transparent}.seg.sel{outline:2px solid var(--fg);outline-offset:1px}
 .seg b{position:absolute;left:0;right:0;bottom:0;display:block}
 .axis{display:flex;justify-content:space-between;font:11px var(--mono);color:var(--mute);margin-top:6px}
@@ -92,6 +92,10 @@ textarea,select{font:inherit;color:var(--fg);background:var(--bg);border:1px sol
 button.cp{border:1px solid var(--line);cursor:pointer}button.cp:hover{border-color:var(--gold)}
 .live{border-color:var(--gold)}
 .tr{margin:0 0 6px;padding-left:18px;position:relative;color:var(--fg);line-height:1.5}.tr:before{content:'';position:absolute;left:3px;top:.6em;width:6px;height:6px;border-radius:50%;background:var(--line)}.tr.d:before{background:var(--gold);border-radius:1px;transform:rotate(45deg)}.tr.d{font-weight:500}.sn{display:block;font-size:12px;color:var(--mute);font-style:italic;margin-top:2px}.live .goal{margin-bottom:12px}
+[data-motif=grid] .hero:after{border:0;border-radius:0;box-shadow:none;width:300px;height:220px;right:0;top:0;background:linear-gradient(var(--line) 1px,transparent 1px) 0 0/28px 28px,linear-gradient(90deg,var(--line) 1px,transparent 1px) 0 0/28px 28px;-webkit-mask-image:linear-gradient(to left,#000,transparent);mask-image:linear-gradient(to left,#000,transparent)}
+[data-motif=dots] .hero:after{border:0;border-radius:0;box-shadow:none;width:300px;height:220px;right:0;top:0;background:radial-gradient(var(--line) 1.6px,transparent 1.8px) 0 0/16px 16px;-webkit-mask-image:linear-gradient(to left,#000,transparent);mask-image:linear-gradient(to left,#000,transparent)}
+[data-motif=none] .hero:after{display:none}
+[data-density=compact] body{font-size:13px}[data-density=compact] .card{padding:12px 14px;margin-bottom:10px}[data-density=compact] .hero{padding:18px 20px 14px}[data-density=compact] .goal{font-size:clamp(18px,3vw,24px);margin-bottom:12px}[data-density=compact] .chips{gap:8px;margin-bottom:10px}[data-density=compact] .chip{padding:8px 10px}[data-density=compact] .day{padding:3px 0}[data-density=compact] .item{padding:7px 6px}
 #toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,20px);background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:10px;opacity:0;transition:.2s;z-index:30;pointer-events:none}
 #toast.on{opacity:1;transform:translate(-50%,0)}
 #help{position:absolute;right:0;top:40px;z-index:6;width:260px;background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:12px 14px}
@@ -103,6 +107,7 @@ button.cp{border:1px solid var(--line);cursor:pointer}button.cp:hover{border-col
 <span class="row" style="position:relative"><button id="theme">Theme</button><button id="cp">Copy report</button><button id="pz" hidden>Pause run</button><button id="rp">Replay</button><button id="hb" aria-label="Keyboard help" aria-expanded="false">?</button>
 <div id="help" hidden><div><span>Tabs</span><kbd>1 – 5</kbd></div><div><span>Next or previous task</span><kbd>j / k</kbd></div><div><span>Search tasks</span><kbd>/</kbd></div><div><span>Replay the work</span><kbd>r</kbd></div><div><span>Close panel</span><kbd>Esc</kbd></div></div></span></div>
 <div class="mute small" style="margin-top:6px;font-family:var(--mono)"><span id="sub"></span> <span id="qs" style="color:var(--warn)"></span></div>
+<div class="small mute" id="lookwhy" style="margin-top:2px"></div>
 </header>
 <nav id="tabs" role="tablist" aria-label="Views"></nav>
 
@@ -159,6 +164,18 @@ const copy=async s=>{try{await navigator.clipboard.writeText(s);toast('Copied');
 const stat=()=>{const all=DATA.flatMap(x=>x.st),dn=all.filter(x=>x[1]=='c').length;return {all,dn,w:DATA.filter(d=>d.ask).length,dec:DATA.reduce((a,x)=>a+x.de.length,0),fi:DATA.reduce((a,x)=>a+x.fi.length,0),files:new Set(DATA.flatMap(x=>Object.keys(x.fl))).size,sh:DATA.reduce((a,x)=>a+shipped(x),0)}};
 let TABS=[['over','Overview'],['tasks','Tasks'],['decs','Decisions'],['chg','Changes'],['need','Needs you']];
 let DB=null,CM=null,CAN=false,LIVE=null,INB=[];
+/* Look chosen by the agent. Only these values are accepted, all pre-checked for WCAG AA contrast. */
+const PAL={gold:['#8a6420','#d9b36c'],ember:['#b5451f','#ff8a5c'],ocean:['#1f6f93','#6fc3e8'],forest:['#2a7048','#6fcf97'],violet:['#6342c4','#a99bff'],ink:['#1d1b16','#ece8dc']};
+const FONTS={serif:'ui-serif,"Iowan Old Style","Palatino Linotype",Georgia,serif',sans:'system-ui,-apple-system,"Segoe UI",Roboto,sans-serif',mono:'ui-monospace,"SF Mono",Menlo,Consolas,monospace'};
+const MOTIF=['ring','grid','dots','none'],DENS=['airy','compact'],BLOCKS=['live','hero','chips','needs','why','strip'];
+let STY={};
+function applyStyle(st){st=st||{};const k=PAL[st.palette]?st.palette:'gold',pal=PAL[k];
+ STY={palette:k,font:FONTS[st.font]?st.font:'serif',motif:MOTIF.includes(st.motif)?st.motif:'ring',density:DENS.includes(st.density)?st.density:'airy',order:Array.isArray(st.order)&&st.order.length?st.order.filter(b=>BLOCKS.includes(b)):BLOCKS.slice(),why:typeof st.why=='string'?st.why.slice(0,160):''};
+ const v=g=>`--gold:${g};--goldbg:color-mix(in srgb,var(--gold) 16%,var(--panel));--glow:color-mix(in srgb,var(--gold) 12%,transparent);`;
+ let el=document.getElementById('stl');if(!el){el=document.createElement('style');el.id='stl';document.head.appendChild(el)}
+ el.textContent=`:root{${v(pal[0])}--serif:${FONTS[STY.font]}}@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){${v(pal[1])}}}:root[data-theme="dark"]{${v(pal[1])}}:root[data-theme="light"]{${v(pal[0])}}`;
+ document.documentElement.dataset.density=STY.density;document.documentElement.dataset.motif=STY.motif;
+ const w=$('lookwhy');if(w)w.textContent=STY.why?'Look chosen by the agent: '+STY.why:''}
 const optChip=(i,o)=>CAN?`<button class="cp" data-ans="${i}" data-opt="${esc(o)}" title="Send this answer to the agent">${esc(o)}</button>`:`<span class="cp">${esc(o)}</span>`;
 const stag=el=>{el.classList.add('rise');[...el.children].forEach((c,i)=>c.style.setProperty('--i',Math.min(i,10)))};
 
@@ -168,13 +185,17 @@ function go(v,f){view=v;if(f)flt=f;tabs();TABS.forEach(t=>$('v-'+t[0]).hidden=t[
 function over(){const s=stat(),refs=[];(META.paras||[]).forEach(p=>p.replace(/\[(\d+)\]/g,(m,n)=>{n=+n;if(n>=1&&n<=N&&!refs.includes(n))refs.push(n)}));
  const ch=[['goal','Tasks',N+(META.total>N?' of '+META.total:''),'tasks','all','--gold'],['steps','Steps done',s.dn+' of '+s.all.length,'tasks','open','--blk-open'],['find','Findings',s.fi,'tasks','all','--info'],['dec','Decisions',s.dec,'decs','','--gold'],['file','Files changed',s.files,'chg','','--good'],['ship','Shipped',s.sh,'chg','','--good'],['wait','Waiting on you',s.w,'need','','--blk-wait']];
  const w=DATA.map((d,i)=>i).filter(i=>DATA[i].ask),mins=DATA.map(d=>Math.max(1,d.e-d.t));
- $('v-over').innerHTML=`<div id="live">${liveHtml()}</div><div class="card hero"><div class="lb">${ic('goal')}Goal</div><div class="goal">${esc(META.goal||(DATA[0]&&DATA[0].g)||'')}</div>
+ const B={};
+ B.live=`<div id="live">${liveHtml()}</div>`;
+ B.hero=`<div class="card hero"><div class="lb">${ic('goal')}Goal</div><div class="goal">${esc(META.goal||(DATA[0]&&DATA[0].g)||'')}</div>
  <div class="lb">${ic('find')}Summary</div>${(META.paras||[]).map(p=>`<p>${fn(p)}</p>`).join('')||'<p class="mute">No summary was written. Open a task to see what it did.</p>'}
- ${refs.length?`<div class="lb" style="margin-top:16px">${ic('file')}Notes</div><ol class="fnl">${refs.map(n=>`<li><sup><a href="#t${n}" data-open="${n-1}">${n}</a></sup> <a href="#t${n}" data-open="${n-1}">${esc(DATA[n-1].ti)}</a> · ${dt(DATA[n-1].t)}</li>`).join('')}</ol>`:''}</div>
- <div class="chips">${ch.map(c=>`<button class="chip" style="--c:var(${c[5]})" data-tab="${c[3]}" ${c[4]?`data-flt="${c[4]}"`:''}><i>${ic(c[0])}</i><div><b>${c[2]}</b><span>${c[1]}</span></div></button>`).join('')}</div>
- ${w.length?`<div class="need"><div class="t"><i class="pulse"></i>Needs you</div>${w.slice(-3).map(i=>`<div style="margin-bottom:6px">${esc(DATA[i].ask)} <sup><a href="#t${i+1}" data-open="${i}">${i+1}</a></sup></div>`).join('')}<button data-tab="need">See all ${w.length}</button></div>`:''}
- ${(()=>{const L=[];DATA.forEach((d,i)=>d.tr.filter(x=>x[1]=='d').forEach(x=>L.push([i,x[0]])));const T=L.slice(-6).reverse();return T.length?`<div class="card"><div class="lb">${ic('dec')}Why it went this way</div>${T.map(([i,x])=>`<div class="tr d">${esc(x)} <sup><a href="#t${i+1}" data-open="${i}">${i+1}</a></sup></div>`).join('')}<div class="small mute">Decision-like notes the agent wrote while it worked, newest first.</div></div>`:''})()}
- <div class="card"><div class="lb">${ic('task')}The run, task by task</div><div class="strip">${DATA.map((d,i)=>`<button class="seg ${i==cur?'sel':''}" data-open="${i}" style="flex-grow:${Math.sqrt(mins[i]).toFixed(2)};background:${fillBg(d)}" aria-label="Task ${i+1}: ${esc(d.ti)}" title="${i+1}. ${esc(d.ti)}"></button>`).join('')}</div><div class="axis"><span>${dt(DATA[0].t)}</span><span>segment width = time spent, shortened</span><span>${dt(DATA[N-1].e)}</span></div></div>`}
+ ${refs.length?`<div class="lb" style="margin-top:16px">${ic('file')}Notes</div><ol class="fnl">${refs.map(n=>`<li><sup><a href="#t${n}" data-open="${n-1}">${n}</a></sup> <a href="#t${n}" data-open="${n-1}">${esc(DATA[n-1].ti)}</a> · ${dt(DATA[n-1].t)}</li>`).join('')}</ol>`:''}</div>`;
+ B.chips=`<div class="chips">${ch.map(c=>`<button class="chip" style="--c:var(${c[5]})" data-tab="${c[3]}" ${c[4]?`data-flt="${c[4]}"`:''}><i>${ic(c[0])}</i><div><b>${c[2]}</b><span>${c[1]}</span></div></button>`).join('')}</div>`;
+ B.needs=`${w.length?`<div class="need"><div class="t"><i class="pulse"></i>Needs you</div>${w.slice(-3).map(i=>`<div style="margin-bottom:6px">${esc(DATA[i].ask)} <sup><a href="#t${i+1}" data-open="${i}">${i+1}</a></sup></div>`).join('')}<button data-tab="need">See all ${w.length}</button></div>`:''}`;
+ B.why=`${(()=>{const L=[];DATA.forEach((d,i)=>d.tr.filter(x=>x[1]=='d').forEach(x=>L.push([i,x[0]])));const T=L.slice(-6).reverse();return T.length?`<div class="card"><div class="lb">${ic('dec')}Why it went this way</div>${T.map(([i,x])=>`<div class="tr d">${esc(x)} <sup><a href="#t${i+1}" data-open="${i}">${i+1}</a></sup></div>`).join('')}<div class="small mute">Decision-like notes the agent wrote while it worked, newest first.</div></div>`:''})()}`;
+ B.strip=`<div class="card"><div class="lb">${ic('task')}The run, task by task</div><div class="strip">${DATA.map((d,i)=>`<button class="seg ${i==cur?'sel':''}" data-open="${i}" style="flex-grow:${Math.sqrt(mins[i]).toFixed(2)};background:${fillBg(d)}" aria-label="Task ${i+1}: ${esc(d.ti)}" title="${i+1}. ${esc(d.ti)}"></button>`).join('')}</div><div class="axis"><span>${dt(DATA[0].t)}</span><span>segment width = time spent, shortened</span><span>${dt(DATA[N-1].e)}</span></div></div>`;
+ const ord=STY.order.includes('hero')?STY.order:['hero',...STY.order];
+ $('v-over').innerHTML=ord.map(k=>B[k]||'').join('')}
 function blk(i,ok){const d=DATA[i],full=frac(d)>=1;return `<button class="blk ${full?'full':''} ${i==cur?'sel':''} ${ok?'':'dim'}" data-open="${i}" style="background:${fillBg(d)}" aria-label="Task ${i+1}: ${esc(d.ti)}" title="${esc(d.ti)}"><span>${i+1}</span>${d.de.length?'<i>◆</i>':shipped(d)?'<i>▲</i>':''}</button>`}
 
 function filters(){$('filters').innerHTML=Object.entries(F).map(([k,v])=>`<button data-flt="${k}" class="${k==flt?'on':''}">${v[0]} ${DATA.filter(d=>v[1](d)).length}</button>`).join('')}
@@ -215,6 +236,7 @@ async function startLive(){if(!META.live||!window.claude||!claude.use)return;
  const g=n=>claude.use(n).catch(()=>null);const [db,user,cm]=await Promise.all([g('db'),g('user'),g('comments')]);
  CM=cm||null;if(!db){if(CM){refresh();paintAct()}return}DB=db;try{CAN=user?!!(await user.canEdit()):false}catch(e){CAN=false}
  refresh();if(view=='need')need();paintAct();paintTop();
+ db.doc('live/style').onSnapshot(x=>{if(x.exists){applyStyle(x.data());refresh()}},()=>{});
  db.doc('live/now').onSnapshot(x=>{LIVE=x.exists?x.data():null;if($('live'))$('live').innerHTML=liveHtml()},()=>{});
  db.collection('inbox').orderBy('at','desc').limit(80).onSnapshot(x=>{INB=x.docs.map(d=>Object.assign({id:d.id},d.data()));paintTop();paintAct();if(view=='need')need()},e=>{$('qs').textContent='Actions stopped ('+((e&&e.code)||'error')+'). Reload the page.'})}
 function steps(st){const d=DATA[cur],n=st.filter(x=>x=='c').length,f=d.st.length?n/d.st.length:1;
@@ -277,7 +299,7 @@ document.addEventListener('keydown',e=>{const open_=$('dr').classList.contains('
  else if(e.key=='k'||e.key=='ArrowLeft'){if(open_)step(-1)}
  else if(e.key=='r')$('rp').click();
  else if(e.key=='?')$('hb').click()});
-$('h1').textContent=META.name;
+applyStyle(META.style);$('h1').textContent=META.name;
 if(N){$('sub').textContent=N+' tasks · '+dt(DATA[0].t)+' to '+dt(DATA[N-1].e);$('cov').textContent=META.note;
  const h=(location.hash||'').slice(1),m=/^t(\d+)$/.exec(h);go(TABS.some(t=>t[0]==h)?h:'over');if(m&&+m[1]>=1&&+m[1]<=N)open(+m[1]-1)}
 else{$('sub').textContent='No tasks with work were found in this session.';$('tabs').hidden=true}

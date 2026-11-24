@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.0 (2026-11-24)
+- The agent chooses the look: six contrast-checked palettes, three fonts, four hero motifs, two densities, block order and a one-line reason. `--style`, `auto` (varies by project) or `default`; with `--live`, `live/style` changes it without a republish.
+
 ## 0.2.0 (2026-11-24)
 - Restyled work view: night and parchment palettes, serif display, icons, run strip, step-fill blocks, decision timeline, edit bars.
 - Two-way mode (`--live`): prefilled quick actions on every task (Looks right, Redo this, Explain why, Stop here), answer buttons on Needs you, pause or resume the run, Live now card, task comments. No free-text box. See `references/live.md`.

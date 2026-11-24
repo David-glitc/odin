@@ -44,4 +44,13 @@ class Odin(unittest.TestCase):
                 subprocess.run([sys.executable, os.path.join(S, 'build_work_view.py'), FIX, '--all', '-o', out, *flag], check=True, capture_output=True)
                 self.assertIn('"live":' + want, open(out).read())
 
+    def test_style(self):
+        with tempfile.TemporaryDirectory() as d:
+            sj = os.path.join(d, 'st.json'); json.dump(dict(palette='ember', motif='grid', why='Incident run.'), open(sj, 'w'))
+            out = os.path.join(d, 'v.html')
+            subprocess.run([sys.executable, os.path.join(S, 'build_work_view.py'), FIX, '--all', '--style', sj, '-o', out], check=True, capture_output=True)
+            self.assertIn('"palette":"ember"', open(out).read())
+            subprocess.run([sys.executable, os.path.join(S, 'build_work_view.py'), FIX, '--all', '-o', out], check=True, capture_output=True)
+            self.assertIn('"style":{"palette":', open(out).read())   # auto
+
 if __name__ == '__main__': unittest.main()
