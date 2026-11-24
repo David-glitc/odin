@@ -88,6 +88,9 @@ td.num{width:150px;font:12px var(--mono);color:var(--mute)}.eb{display:inline-bl
 .dtitle{font:500 21px/1.25 var(--serif);margin:0}
 @media(max-width:600px){#dr{top:auto;height:88vh;width:100%;border-left:0;border-top:1px solid var(--line);border-radius:18px 18px 0 0;transform:translateY(102%)}.hero{padding:20px}}
 @media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+textarea,select{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;width:100%}select{width:auto}textarea{resize:vertical;margin-bottom:8px}
+button.cp{border:1px solid var(--line);cursor:pointer}button.cp:hover{border-color:var(--gold)}
+.live{border-color:var(--gold)}.live .goal{margin-bottom:12px}
 #toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,20px);background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:10px;opacity:0;transition:.2s;z-index:30;pointer-events:none}
 #toast.on{opacity:1;transform:translate(-50%,0)}
 #help{position:absolute;right:0;top:40px;z-index:6;width:260px;background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:12px 14px}
@@ -114,6 +117,7 @@ td.num{width:150px;font:12px var(--mono);color:var(--mute)}.eb{display:inline-bl
 <section class="view" id="v-decs" hidden></section>
 <section class="view" id="v-chg" hidden></section>
 <section class="view" id="v-need" hidden></section>
+<section class="view" id="v-inbox" hidden></section>
 <div class="small mute" id="cov" style="margin-top:18px;line-height:1.6"></div>
 </div>
 
@@ -122,7 +126,8 @@ td.num{width:150px;font:12px var(--mono);color:var(--mute)}.eb{display:inline-bl
 <div id="dh"><div class="row sp"><span class="small mute" id="when" style="font-family:var(--mono)"></span><span class="row"><button id="pv" aria-label="Previous task">‹</button><button id="nx" aria-label="Next task">›</button><button id="dc" aria-label="Copy this task as text">Copy</button><button id="dl" aria-label="Copy link to this task">Link</button><button id="x" aria-label="Close">✕</button></span></div></div>
 <div id="db">
 <div class="row" style="flex-wrap:nowrap;gap:14px;margin-bottom:6px"><svg class="ring" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="18" stroke="var(--soft)"/><circle id="rg" cx="22" cy="22" r="18" stroke="var(--blk-done)" stroke-linecap="round" stroke-dasharray="0 113" transform="rotate(-90 22 22)" style="transition:stroke-dasharray .5s"/></svg><div style="min-width:0"><div id="title" class="dtitle"></div><div id="pct" class="small mute" style="font-family:var(--mono);margin-top:2px"></div></div></div>
-<div id="raw" class="small mute" style="font-style:italic;margin:8px 0 14px"></div>
+<div id="raw" class="small mute" style="font-style:italic;margin:8px 0 10px"></div>
+<div class="row" id="dact" style="margin-bottom:12px" hidden></div>
 <div class="need" id="need" hidden><div class="t"><i class="pulse"></i>Needs you · reply in the chat</div><div id="ask" style="margin-bottom:6px"></div><div id="opts"></div></div>
 <div class="sec" id="s1"><div class="lb" data-ic="steps">Steps</div><div id="steps"></div></div>
 <div class="sec" id="s2"><div class="lb" data-ic="find">What it found</div><div id="finds"></div></div>
@@ -151,16 +156,18 @@ const fn=s=>esc(s).replace(/\[(\d+)\]/g,(m,n)=>+n>=1&&+n<=N?`<sup><a href="#t${n
 const toast=m=>{const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(toast.k);toast.k=setTimeout(()=>t.classList.remove('on'),1600)};
 const copy=async s=>{try{await navigator.clipboard.writeText(s);toast('Copied');return}catch(e){}try{const a=document.createElement('textarea');a.value=s;a.style.cssText='position:fixed;opacity:0';document.body.appendChild(a);a.select();document.execCommand('copy');a.remove();toast('Copied')}catch(e){toast('Copy is blocked here')}};
 const stat=()=>{const all=DATA.flatMap(x=>x.st),dn=all.filter(x=>x[1]=='c').length;return {all,dn,w:DATA.filter(d=>d.ask).length,dec:DATA.reduce((a,x)=>a+x.de.length,0),fi:DATA.reduce((a,x)=>a+x.fi.length,0),files:new Set(DATA.flatMap(x=>Object.keys(x.fl))).size,sh:DATA.reduce((a,x)=>a+shipped(x),0)}};
-const TABS=[['over','Overview'],['tasks','Tasks'],['decs','Decisions'],['chg','Changes'],['need','Needs you']];
+let TABS=[['over','Overview'],['tasks','Tasks'],['decs','Decisions'],['chg','Changes'],['need','Needs you']];
+let DB=null,CM=null,CAN=false,LIVE=null,INB=[],inboxErr='',ik='note',lastBadge='';
+const optChip=(i,o)=>CAN?`<button class="cp" data-ans="${i}" data-opt="${esc(o)}" title="Send this answer to the agent">${esc(o)}</button>`:`<span class="cp">${esc(o)}</span>`;
 const stag=el=>{el.classList.add('rise');[...el.children].forEach((c,i)=>c.style.setProperty('--i',Math.min(i,10)))};
 
-function tabs(){const s=stat();$('tabs').innerHTML=TABS.map(t=>{const b=t[0]=='tasks'?N:t[0]=='decs'?s.dec:t[0]=='need'?s.w:0;return `<button role="tab" aria-selected="${t[0]==view}" class="${t[0]==view?'on':''}" data-tab="${t[0]}">${t[1]}${b?`<span class="badge ${t[0]=='need'?'w':''}">${b}</span>`:''}</button>`}).join('')}
-function go(v,f){view=v;if(f)flt=f;tabs();TABS.forEach(t=>$('v-'+t[0]).hidden=t[0]!=v);({over,tasks,decs,chg,need})[v]();stag($('v-'+v));try{history.replaceState(null,'','#'+v)}catch(e){}window.scrollTo({top:0})}
+function tabs(){const s=stat();$('tabs').innerHTML=TABS.map(t=>{const b=t[0]=='tasks'?N:t[0]=='decs'?s.dec:t[0]=='need'?s.w:t[0]=='inbox'?INB.filter(x=>x.status=='queued').length:0;return `<button role="tab" aria-selected="${t[0]==view}" class="${t[0]==view?'on':''}" data-tab="${t[0]}">${t[1]}${b?`<span class="badge ${t[0]=='need'?'w':''}">${b}</span>`:''}</button>`}).join('')}
+function go(v,f){view=v;if(f)flt=f;tabs();TABS.forEach(t=>$('v-'+t[0]).hidden=t[0]!=v);({over,tasks,decs,chg,need,inbox:inboxV})[v]();stag($('v-'+v));try{history.replaceState(null,'','#'+v)}catch(e){}window.scrollTo({top:0})}
 
 function over(){const s=stat(),refs=[];(META.paras||[]).forEach(p=>p.replace(/\[(\d+)\]/g,(m,n)=>{n=+n;if(n>=1&&n<=N&&!refs.includes(n))refs.push(n)}));
  const ch=[['goal','Tasks',N+(META.total>N?' of '+META.total:''),'tasks','all','--gold'],['steps','Steps done',s.dn+' of '+s.all.length,'tasks','open','--blk-open'],['find','Findings',s.fi,'tasks','all','--info'],['dec','Decisions',s.dec,'decs','','--gold'],['file','Files changed',s.files,'chg','','--good'],['ship','Shipped',s.sh,'chg','','--good'],['wait','Waiting on you',s.w,'need','','--blk-wait']];
  const w=DATA.map((d,i)=>i).filter(i=>DATA[i].ask),mins=DATA.map(d=>Math.max(1,d.e-d.t));
- $('v-over').innerHTML=`<div class="card hero"><div class="lb">${ic('goal')}Goal</div><div class="goal">${esc(META.goal||(DATA[0]&&DATA[0].g)||'')}</div>
+ $('v-over').innerHTML=`<div id="live">${liveHtml()}</div><div class="card hero"><div class="lb">${ic('goal')}Goal</div><div class="goal">${esc(META.goal||(DATA[0]&&DATA[0].g)||'')}</div>
  <div class="lb">${ic('find')}Summary</div>${(META.paras||[]).map(p=>`<p>${fn(p)}</p>`).join('')||'<p class="mute">No summary was written. Open a task to see what it did.</p>'}
  ${refs.length?`<div class="lb" style="margin-top:16px">${ic('file')}Notes</div><ol class="fnl">${refs.map(n=>`<li><sup><a href="#t${n}" data-open="${n-1}">${n}</a></sup> <a href="#t${n}" data-open="${n-1}">${esc(DATA[n-1].ti)}</a> · ${dt(DATA[n-1].t)}</li>`).join('')}</ol>`:''}</div>
  <div class="chips">${ch.map(c=>`<button class="chip" style="--c:var(${c[5]})" data-tab="${c[3]}" ${c[4]?`data-flt="${c[4]}"`:''}><i>${ic(c[0])}</i><div><b>${c[2]}</b><span>${c[1]}</span></div></button>`).join('')}</div>
@@ -187,8 +194,22 @@ function chg(){const F2={};DATA.forEach((d,i)=>Object.entries(d.fl).forEach(([k,
  const sa=$('sa');if(sa)sa.onclick=()=>{showAll=!showAll;chg()}}
 
 function need(){const w=DATA.map((d,i)=>i).filter(i=>DATA[i].ask).reverse();
- $('v-need').innerHTML=w.length?`<h2>${w.length} task${w.length==1?'':'s'} wait${w.length==1?'s':''} on you</h2>`+w.map(i=>`<div class="need"><div class="t"><i class="pulse"></i>Task ${i+1} · ${dt(DATA[i].t)}</div><div style="margin-bottom:8px;font-family:var(--serif);font-size:16px">${esc(DATA[i].ask)}</div><div>${DATA[i].op.map(o=>`<span class="cp">${esc(o)}</span>`).join('')}</div><button data-open="${i}">Open task</button></div>`).join(''):'<div class="card"><div class="lb">'+ic('steps')+'All clear</div><b style="font:500 20px var(--serif)">Nothing waits on you.</b><div class="mute">Every question was answered, or none was asked.</div></div>'}
+ $('v-need').innerHTML=w.length?`<h2>${w.length} task${w.length==1?'':'s'} wait${w.length==1?'s':''} on you</h2>`+w.map(i=>`<div class="need"><div class="t"><i class="pulse"></i>Task ${i+1} · ${dt(DATA[i].t)}</div><div style="margin-bottom:8px;font-family:var(--serif);font-size:16px">${esc(DATA[i].ask)}</div><div>${DATA[i].op.map(o=>optChip(i,o)).join('')}</div><button data-open="${i}">Open task</button></div>`).join(''):'<div class="card"><div class="lb">'+ic('steps')+'All clear</div><b style="font:500 20px var(--serif)">Nothing waits on you.</b><div class="mute">Every question was answered, or none was asked.</div></div>'}
 
+const ago=iso=>{const m=(Date.now()-Date.parse(iso))/60000;return isNaN(m)?'':m<1?'just now':m<60?Math.round(m)+' min ago':m<1440?Math.round(m/60)+' h ago':Math.round(m/1440)+' days ago'};
+function liveHtml(){const L=LIVE;if(!L)return'';return `<div class="card live"><div class="lb"><i class="pulse"></i>Live now${L.at?' · '+esc(ago(L.at)):''}</div><div class="goal" style="font-size:19px">${esc(L.line||'')}</div>${(L.steps||[]).slice(0,10).map(x=>{const k=x.s=='c'?'c':x.s=='i'?'i':'p';return `<div class="step ${k=='c'?'d':''}" style="color:${k=='p'?'var(--mute)':'var(--fg)'}"><span class="dot" style="background:${k=='c'?'var(--goodbg)':k=='i'?'var(--infobg)':'var(--soft)'};color:${k=='c'?'var(--good)':k=='i'?'var(--info)':'var(--mute)'}">${k=='c'?'✓':k=='i'?'…':'·'}</span>${esc(x.c||'')}</div>`}).join('')}</div>`}
+const KIND={note:'Note',direction:'New direction',pause:'Pause',resume:'Resume',answer:'Answer'},PH={note:'A note for the agent. Short, active sentences work best.',direction:'What should the agent do instead?',pause:'Why pause? (optional)',resume:'Anything to add? (optional)'};
+async function sendIn(row){if(!DB||!CAN){toast('Sending is not available here');return false}
+ try{await DB.collection('inbox').add(Object.assign({status:'queued',at:new Date().toISOString()},row));toast('Sent. The agent reads it on its next turn.');return true}catch(e){toast('Could not send ('+((e&&e.code)||'error')+')');return false}}
+function ilist(){const el=$('ilist');if(!el)return;el.innerHTML=inboxErr?`<p class="mute">${esc(inboxErr)}</p>`:INB.length?INB.map(r=>{const pc=r.status=='done'?'done':r.status=='seen'?'open':'wait';return `<div class="card" style="margin-bottom:10px"><div class="row sp"><span class="small mute" style="font-family:var(--mono)">${esc(KIND[r.kind]||r.kind||'Note')}${r.task?' · <a href="#t'+(+r.task)+'" data-open="'+((+r.task)-1)+'">Task '+(+r.task)+'</a>':''} · ${esc(ago(r.at))}</span><span class="pill ${pc}">${esc(r.status||'queued')}</span></div><div style="margin:6px 0">${esc(r.text||'')}</div>${r.reply?`<div class="fd"><span class="small mute">Agent</span><br>${esc(r.reply)}</div>`:''}</div>`}).join(''):'<p class="mute">Nothing sent yet.</p>'}
+function inboxV(){$('v-inbox').innerHTML=`<div class="card"><div class="lb">${ic('dec')}Tell the agent</div>${CAN?`<div class="row" id="ikinds" style="margin-bottom:8px">${['note','direction','pause','resume'].map(k=>`<button data-ik="${k}" class="${ik==k?'on':''}">${KIND[k]}</button>`).join('')}</div><textarea id="itext" rows="3" placeholder="${esc(PH[ik])}" aria-label="Instruction for the agent"></textarea><div class="row sp"><label class="small mute">Task <select id="itask"><option value="">Whole run</option>${DATA.map((d,i)=>`<option value="${i+1}">${i+1}. ${esc(d.ti.slice(0,48))}</option>`).join('')}</select></label><button id="isend" class="on">Send to the agent</button></div><div class="small mute" style="margin-top:8px">The agent reads this on its next turn or at its next inbox check. It does not interrupt a step that is running. Do not paste secrets.</div>`:'<p class="mute">Only editors of this page can send instructions. You can still read what was sent.</p>'}</div><div class="lb" style="margin-top:6px">Sent</div><div id="ilist"></div>`;ilist()}
+async function startLive(){if(!META.live||!window.claude||!claude.use)return;
+ const g=n=>claude.use(n).catch(()=>null);const [db,user,cm]=await Promise.all([g('db'),g('user'),g('comments')]);
+ CM=cm||null;if(!db){if(CM){refresh()}return}DB=db;try{CAN=user?!!(await user.canEdit()):false}catch(e){CAN=false}
+ TABS.push(['inbox','Inbox']);tabs();refresh();if(view=='need')need();
+ const t=setTimeout(()=>{inboxErr='The inbox cannot be reached yet. Showing nothing new.';if(view=='inbox')ilist()},10000);
+ db.doc('live/now').onSnapshot(x=>{LIVE=x.exists?x.data():null;if($('live'))$('live').innerHTML=liveHtml()},()=>{});
+ db.collection('inbox').orderBy('at','desc').limit(60).onSnapshot(x=>{clearTimeout(t);inboxErr='';INB=x.docs.map(d=>Object.assign({id:d.id},d.data()));const b=INB.filter(r=>r.status=='queued').length+':'+INB.length;if(b!=lastBadge){lastBadge=b;tabs()}if(view=='inbox')ilist()},e=>{clearTimeout(t);inboxErr='The inbox stopped ('+((e&&e.code)||'error')+'). Reload the page.';if(view=='inbox')ilist()})}
 function steps(st){const d=DATA[cur],n=st.filter(x=>x=='c').length,f=d.st.length?n/d.st.length:1;
  $('rg').setAttribute('stroke-dasharray',(f*113.1).toFixed(1)+' 113.1');$('rg').setAttribute('stroke',f>=1?'var(--blk-done)':'var(--blk-open)');
  if(!d.st.length){$('steps').innerHTML='<div class="small mute">No plan was kept for this task, so there are no steps to show.</div>';$('pct').textContent='No plan kept';return}
@@ -203,7 +224,8 @@ function detail(reveal){const d=DATA[cur];
  if(d.cm.length)o.push(['Commits',d.cm.map(c=>`<span class="cp">${esc(c)}</span>`).join('')]);if(d.dp.length)o.push(['Deployed',d.dp.map(c=>`<span class="cp">${esc(c)}</span>`).join('')]);
  if(d.ln.length)o.push(['Published',d.ln.map(l=>`<a class="cp" href="https://claude.ai/artifact/${esc(l)}">artifact ${esc(l.slice(0,6))}</a>`).join('')]);
  $('outs').innerHTML=o.map(x=>`<div style="margin-bottom:6px"><span class="small mute">${x[0]}</span><div>${x[1]}</div></div>`).join('')||'<div class="small mute">Nothing was changed. This task only looked or answered.</div>';
- $('need').hidden=!d.ask;$('ask').textContent=d.ask;$('opts').innerHTML=d.op.map(x=>`<span class="cp">${esc(x)}</span>`).join('');
+ $('need').hidden=!d.ask;$('ask').textContent=d.ask;$('opts').innerHTML=d.op.map(x=>optChip(cur,x)).join('');
+ $('dact').hidden=!(CM||CAN);$('dact').innerHTML=(CM?'<button id="dm">Comment on this task</button>':'')+(CAN?'<button id="dn">Send a note to the agent</button>':'');
  if(!reveal){steps(d.st.map(s=>s[1]));[1,2,3,4].forEach(i=>sec('s'+i,true))}}
 const sec=(id,on)=>{$(id).style.opacity=on?1:.12};
 function open(i){if(i<0||i>=N)return;stopRp();cur=i;if(!$('dr').classList.contains('open'))opener=document.activeElement;
@@ -222,7 +244,12 @@ function play(i){i=nextI(i,1);if(i<0){stopRp();return}
 function taskText(i){const d=DATA[i];return ['Task '+(i+1)+': '+d.ti+' ('+dt(d.t)+')','You said: "'+d.g+'"',d.st.length?'Steps: '+d.st.map(s=>(s[1]=='c'?'[x] ':'[ ] ')+s[0]).join('; '):'','Found: '+d.fi.map(f=>f.x).join(' '),d.de.length?'Decisions: '+d.de.map(y=>y.q+' -> '+(y.a||'no answer')).join('; '):'',d.nfl?'Files: '+Object.keys(d.fl).join(', '):'',d.cm.length?'Commits: '+d.cm.join('; '):'',d.dp.length?'Deployed: '+d.dp.join('; '):'',d.ask?'Needs you: '+d.ask:''].filter(Boolean).join('\n')}
 function report(){const s=stat();return ['# '+META.name,'','Goal: '+(META.goal||(DATA[0]&&DATA[0].g)||''),'',...(META.paras||[]),'',s.dn+' of '+s.all.length+' steps done. '+s.dec+' decisions. '+s.files+' files changed. '+s.w+' waiting on you.','','## Tasks',...DATA.map((d,i)=>(i+1)+'. '+d.ti+' - '+LAB[status(d)]+' ('+dt(d.t)+')')].join('\n')}
 
-document.addEventListener('click',e=>{const o=e.target.closest('[data-open]');if(o){e.preventDefault();open(+o.dataset.open);return}
+document.addEventListener('click',async e=>{const an=e.target.closest('[data-ans]');if(an){if(await sendIn({kind:'answer',task:+an.dataset.ans+1,text:an.dataset.opt}))an.classList.add('pick');return}
+ const kk=e.target.closest('[data-ik]');if(kk){ik=kk.dataset.ik;document.querySelectorAll('#ikinds button').forEach(b=>b.classList.toggle('on',b.dataset.ik==ik));$('itext').placeholder=PH[ik];return}
+ if(e.target.id=='isend'){const t=$('itext').value.trim();if(!t&&(ik=='note'||ik=='direction')){toast('Write a message first');return}if(await sendIn({kind:ik,text:t||(ik=='pause'?'Pause':'Resume'),task:+$('itask').value||0})){$('itext').value='';}return}
+ if(e.target.id=='dm'&&CM){CM.openComposer({element:$('title')}).catch(()=>toast('Comments are not available'));return}
+ if(e.target.id=='dn'){const n=cur+1;close();go('inbox');$('itask').value=String(n);$('itext').focus();return}
+ const o=e.target.closest('[data-open]');if(o){e.preventDefault();open(+o.dataset.open);return}
  const t=e.target.closest('[data-tab]');if(t){go(t.dataset.tab,t.dataset.flt);return}
  const f=e.target.closest('#filters [data-flt]');if(f){flt=f.dataset.flt;tasks()}});
 $('x').onclick=close;$('ov').onclick=close;$('pv').onclick=()=>step(-1);$('nx').onclick=()=>step(1);
@@ -237,7 +264,7 @@ document.addEventListener('keydown',e=>{const open_=$('dr').classList.contains('
  if(e.key=='Escape'){if(!$('help').hidden){$('hb').click();return}if(open_)close();return}
  if(e.key=='Tab'&&open_){const f=[...$('dr').querySelectorAll('button,a[href]')].filter(x=>!x.disabled&&x.offsetParent);if(!f.length)return;const a=f[0],z=f[f.length-1];if(e.shiftKey&&document.activeElement==a){e.preventDefault();z.focus()}else if(!e.shiftKey&&document.activeElement==z){e.preventDefault();a.focus()}return}
  if(e.target.tagName=='INPUT'||e.metaKey||e.ctrlKey||e.altKey)return;
- if(e.key>='1'&&e.key<='5'){close();go(TABS[+e.key-1][0])}
+ if(e.key>='1'&&+e.key<=TABS.length){close();go(TABS[+e.key-1][0])}
  else if(e.key=='/'){e.preventDefault();close();go('tasks');$('q').focus()}
  else if(e.key=='j'||e.key=='ArrowRight'){if(open_)step(1)}
  else if(e.key=='k'||e.key=='ArrowLeft'){if(open_)step(-1)}
@@ -247,4 +274,5 @@ $('h1').textContent=META.name;
 if(N){$('sub').textContent=N+' tasks · '+dt(DATA[0].t)+' to '+dt(DATA[N-1].e);$('cov').textContent=META.note;
  const h=(location.hash||'').slice(1),m=/^t(\d+)$/.exec(h);go(TABS.some(t=>t[0]==h)?h:'over');if(m&&+m[1]>=1&&+m[1]<=N)open(+m[1]-1)}
 else{$('sub').textContent='No tasks with work were found in this session.';$('tabs').hidden=true}
+startLive();
 </script>

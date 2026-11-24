@@ -37,4 +37,11 @@ class Odin(unittest.TestCase):
             subprocess.run([sys.executable, os.path.join(S, 'build_work_view.py'), FIX, '--all', '--summary', sj, '-o', out], check=True, capture_output=True)
             self.assertIn('"goal":"My goal"', open(out).read())
 
+    def test_live_flag(self):
+        with tempfile.TemporaryDirectory() as d:
+            for flag, want in (([], 'false'), (['--live'], 'true')):
+                out = os.path.join(d, 'v.html')
+                subprocess.run([sys.executable, os.path.join(S, 'build_work_view.py'), FIX, '--all', '-o', out, *flag], check=True, capture_output=True)
+                self.assertIn('"live":' + want, open(out).read())
+
 if __name__ == '__main__': unittest.main()

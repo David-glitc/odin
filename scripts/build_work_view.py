@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""build_work_view.py <session|id|project-dir> [--all | --last N] [--name NAME] [--goal TEXT] [--summary summary.json] [-o out.html] [--standalone]
+"""build_work_view.py <session|id|project-dir> [--all | --last N] [--name NAME] [--goal TEXT] [--summary summary.json] [-o out.html] [--standalone] [--live]
 --summary takes {"goal": "...", "paragraphs": ["Plain sentence.[3] Another.[5]"]}: write it yourself in short STE sentences; [n] links to task n.
-Without it Odin writes a short factual summary from the data.
+--live turns on the Inbox tab, the Live now card, answer buttons and comments. Publish it with the capabilities in references/live.md.
+Without --summary Odin writes a short factual summary from the data.
 Fills assets/work_view.html with the WORK of a session (goals, steps, findings, decisions, outputs).
 Default output is an artifact-ready fragment. Titles are the first sentence of each task's first finding.
 Use for long sessions where the data is too big to put into an inline widget."""
@@ -69,7 +70,7 @@ if __name__ == '__main__':
     if paras is None: paras = auto_summary(sl, len(K))
     if not goal:   # first request when the run is short (one goal); the latest request when it spans many days
         goal = sl[0]['g'] if (sl[-1]['e'] - sl[0]['t']) < 2880 else f"The latest request: {sl[-1]['g']}"
-    meta = dict(name=name + ' work view', base=base, total=len(K), note=note, goal=goal, paras=paras)
+    meta = dict(name=name + ' work view', base=base, total=len(K), note=note, goal=goal, paras=paras, live='--live' in a)
     tpl = open(os.path.join(os.path.dirname(__file__), '..', 'assets', 'work_view.html')).read()
     esc = lambda o: redact(json.dumps(o, separators=(',', ':'), ensure_ascii=False)).replace('</', '<\\/')
     h = tpl.replace('/*TITLE*/', f'{name} Work View').replace('/*META*/{"name":"Work","base":0,"total":0,"note":""}', esc(meta)).replace('/*DATA*/[]', esc(sl))

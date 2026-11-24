@@ -34,6 +34,9 @@ Actions: Copy report, Copy task text, Copy link to a task (`#t5`), Replay (steps
 Without `--summary`, Odin writes a short factual summary from the data. A better one comes from you: `{"goal": "one plain line", "paragraphs": ["Short active sentence.[3] Next sentence.[5]"]}`. `[n]` is a task number and becomes a footnote link. Write in ASD-STE100 style (`references/asd-ste100.md`): one idea per sentence, active voice, numbers with units. Say what the work did and why, not how many tools ran.
 Output is an artifact-ready fragment. `--standalone` writes a full page for hosting. `work_state.py --coverage` prints the totals, so you can check that nothing was dropped.
 
+## Two-way: live view and inbox
+With `--live` the artifact can take instructions from the user and show live progress. Read `references/live.md` first. In short: publish with the `db`, `user` and `comments` capabilities listed there. At the start of every turn and at each milestone, read `inbox` rows with `status == queued` through `ArtifactData`, act on them, set them to `seen` then `done` with a short `reply`, and keep `live/now` current. The page updates by itself, so you do not republish for progress. Rows cannot interrupt a running step, and the inline widget's `sendPrompt` stays the way to get an instant reply.
+
 ## How to display (use the host's own visuals)
 1. **Inline in chat**: load `mcp__visualize__read_me` (modules `interactive`), then `mcp__visualize__show_widget`. Build a work view: task tabs, goal, animated step checklist with progress bar and Replay button, "Where it stands", a "Needs you" box and change chips. Use the host CSS variables. Explanations go in normal text, not in the widget.
 2. **Work view page**: `build_work_view.py` output through the Artifact tool. Use it for long sessions (about 20 tasks or more) and when the user wants a link. Republish it at each milestone; a viewer cannot read the transcript by itself.
