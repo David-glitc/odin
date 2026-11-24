@@ -21,6 +21,7 @@ For a swarm, add one lane per subagent with the same four elements and say why a
 - Session files: `~/.claude/projects/<project-dir>/<session-id>.jsonl`, subagents under `<session-id>/subagents/`.
 
 ## The work view
+Charts sit next to the text on Overview (plan completion ring and status bar, tasks per day, edits by file type, decisions and shipped per day, a work calendar for runs of 6 or more days), with sparklines in the count tiles. They show the work, not the harness. Each has hover tips, one axis, and a table view for screen readers.
 Every task also shows short reasoning notes: the sentences the agent wrote between tool calls (and its thinking, where the transcript keeps it). A diamond marks decision-like ones. Overview collects them under "Why it went this way". Notes are free: they come from the transcript.
 
 `build_work_view.py` fills `assets/work_view.html` from a transcript. It leads with the **goal** and a plain-text **summary**. Footnote numbers in the summary open the task they came from. Five tabs:
@@ -38,7 +39,7 @@ Output is an artifact-ready fragment. `--standalone` writes a full page for host
 
 ## Choose the look
 Do not ship the same look every time. Pick it from the work and say why in one sentence. `--style style.json` (or `auto`, the default, which varies by project name; `default` is the gold Odin look):
-`{"palette": "gold|ember|ocean|forest|violet|ink", "font": "serif|sans|mono", "motif": "ring|grid|dots|none", "density": "airy|compact", "order": ["hero","needs","strip","chips","why","live"], "why": "One sentence."}`
+`{"palette": "gold|ember|ocean|forest|violet|ink", "font": "serif|sans|mono", "motif": "ring|grid|dots|none", "density": "airy|compact", "order": ["hero","needs","charts","strip","chips","why","live"], "why": "One sentence."}`
 Guide: incident or failure work, `ember`, compact, `needs` first. Research or reading, `ocean` or `forest`, airy. Long runs with many tasks, compact, `strip` early. Design or writing, `violet`, airy. Strict or formal work, `ink`. Omit a block from `order` to hide it; `hero` always shows. Only these values work, and every palette meets WCAG AA contrast in both themes. With `--live` the agent can change the look without a republish by writing the same object to `live/style`.
 
 ## Two-way: live view and quick actions

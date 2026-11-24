@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.4.0 (2026-11-24)
+- Charts next to the text: plan completion ring and status bar, tasks per day, edits by file type, decisions and shipped per day, work calendar, sparklines in the count tiles, charts on Decisions and Changes. One axis, hover tips, table view for each.
+
 ## 0.3.0 (2026-11-24)
 - The agent chooses the look: six contrast-checked palettes, three fonts, four hero motifs, two densities, block order and a one-line reason. `--style`, `auto` (varies by project) or `default`; with `--live`, `live/style` changes it without a republish.
 

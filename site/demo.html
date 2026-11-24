@@ -38,7 +38,7 @@ header{padding-top:20px}
 sup a{font:600 10.5px var(--mono);text-decoration:none;padding:1px 4px;margin-left:2px;border-radius:5px;background:var(--goldbg);color:var(--gold)}
 sup a:hover{background:var(--gold);color:var(--bg)}
 ol.fnl{margin:0;padding:0;list-style:none;font-size:12px;color:var(--mute)}ol.fnl li{margin:3px 0}ol.fnl a{color:var(--fg)}
-.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(156px,1fr));gap:10px;margin-bottom:14px}
+.chips{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-bottom:14px}
 .chip{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;text-align:left;min-width:0;display:flex;gap:10px;align-items:center}
 .chip:hover{transform:translateY(-2px);border-color:var(--c)}
 .chip i{flex:none;width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:color-mix(in srgb,var(--c) 16%,transparent);color:var(--c)}
@@ -96,6 +96,15 @@ button.cp{border:1px solid var(--line);cursor:pointer}button.cp:hover{border-col
 [data-motif=dots] .hero:after{border:0;border-radius:0;box-shadow:none;width:300px;height:220px;right:0;top:0;background:radial-gradient(var(--line) 1.6px,transparent 1.8px) 0 0/16px 16px;-webkit-mask-image:linear-gradient(to left,#000,transparent);mask-image:linear-gradient(to left,#000,transparent)}
 [data-motif=none] .hero:after{display:none}
 [data-density=compact] body{font-size:13px}[data-density=compact] .card{padding:12px 14px;margin-bottom:10px}[data-density=compact] .hero{padding:18px 20px 14px}[data-density=compact] .goal{font-size:clamp(18px,3vw,24px);margin-bottom:12px}[data-density=compact] .chips{gap:8px;margin-bottom:10px}[data-density=compact] .chip{padding:8px 10px}[data-density=compact] .day{padding:3px 0}[data-density=compact] .item{padding:7px 6px}
+.cgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-bottom:14px}.cgrid .cc{margin:0;min-width:0}.cgrid .wide{grid-column:1/-1}
+@media(max-width:700px){.cgrid{grid-template-columns:1fr}}
+.cc svg:not(.ic){display:block;width:100%;height:auto;overflow:visible}.cc svg .mk{transition:opacity .15s}.cc svg .mk:hover,.cc svg .mk:focus{opacity:.75;outline:none}
+.stk{display:flex;gap:2px;height:16px;margin-bottom:8px}.stk i{border-radius:4px;min-width:4px}.stk i:focus{outline:2px solid var(--fg);outline-offset:1px}
+.leg{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--mute)}.leg b{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px}
+.spark{width:54px;height:22px;flex:none;margin-left:auto;overflow:visible}
+.tv{margin-top:8px;font-size:12px}.tv summary{cursor:pointer;color:var(--mute)}.tv table{margin-top:6px;font-size:12px}.tv td,.tv th{padding:3px 6px}
+#tip{position:fixed;z-index:40;pointer-events:none;background:var(--fg);color:var(--bg);font:12px var(--mono);padding:4px 9px;border-radius:7px;opacity:0;transition:opacity .1s;max-width:260px}#tip.on{opacity:1}
+.hm rect{transition:opacity .15s}.hm rect:hover{opacity:.7}
 #toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,20px);background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:10px;opacity:0;transition:.2s;z-index:30;pointer-events:none}
 #toast.on{opacity:1;transform:translate(-50%,0)}
 #help{position:absolute;right:0;top:40px;z-index:6;width:260px;background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:12px 14px}
@@ -167,7 +176,7 @@ let DB=null,CM=null,CAN=false,LIVE=null,INB=[];
 /* Look chosen by the agent. Only these values are accepted, all pre-checked for WCAG AA contrast. */
 const PAL={gold:['#8a6420','#d9b36c'],ember:['#b5451f','#ff8a5c'],ocean:['#1f6f93','#6fc3e8'],forest:['#2a7048','#6fcf97'],violet:['#6342c4','#a99bff'],ink:['#1d1b16','#ece8dc']};
 const FONTS={serif:'ui-serif,"Iowan Old Style","Palatino Linotype",Georgia,serif',sans:'system-ui,-apple-system,"Segoe UI",Roboto,sans-serif',mono:'ui-monospace,"SF Mono",Menlo,Consolas,monospace'};
-const MOTIF=['ring','grid','dots','none'],DENS=['airy','compact'],BLOCKS=['live','hero','chips','needs','why','strip'];
+const MOTIF=['ring','grid','dots','none'],DENS=['airy','compact'],BLOCKS=['live','hero','chips','charts','needs','why','strip'];
 let STY={};
 function applyStyle(st){st=st||{};const k=PAL[st.palette]?st.palette:'gold',pal=PAL[k];
  STY={palette:k,font:FONTS[st.font]?st.font:'serif',motif:MOTIF.includes(st.motif)?st.motif:'ring',density:DENS.includes(st.density)?st.density:'airy',order:Array.isArray(st.order)&&st.order.length?st.order.filter(b=>BLOCKS.includes(b)):BLOCKS.slice(),why:typeof st.why=='string'?st.why.slice(0,160):''};
@@ -184,18 +193,57 @@ function go(v,f){view=v;if(f)flt=f;tabs();TABS.forEach(t=>$('v-'+t[0]).hidden=t[
 
 function over(){const s=stat(),refs=[];(META.paras||[]).forEach(p=>p.replace(/\[(\d+)\]/g,(m,n)=>{n=+n;if(n>=1&&n<=N&&!refs.includes(n))refs.push(n)}));
  const ch=[['goal','Tasks',N+(META.total>N?' of '+META.total:''),'tasks','all','--gold'],['steps','Steps done',s.dn+' of '+s.all.length,'tasks','open','--blk-open'],['find','Findings',s.fi,'tasks','all','--info'],['dec','Decisions',s.dec,'decs','','--gold'],['file','Files changed',s.files,'chg','','--good'],['ship','Shipped',s.sh,'chg','','--good'],['wait','Waiting on you',s.w,'need','','--blk-wait']];
+ const SP=[cum(()=>1),cum(d=>d.st.filter(x=>x[1]=='c').length),cum(d=>d.fi.length),cum(d=>d.de.length),cum(d=>d.nfl),cum(shipped),null];
  const w=DATA.map((d,i)=>i).filter(i=>DATA[i].ask),mins=DATA.map(d=>Math.max(1,d.e-d.t));
  const B={};
  B.live=`<div id="live">${liveHtml()}</div>`;
  B.hero=`<div class="card hero"><div class="lb">${ic('goal')}Goal</div><div class="goal">${esc(META.goal||(DATA[0]&&DATA[0].g)||'')}</div>
  <div class="lb">${ic('find')}Summary</div>${(META.paras||[]).map(p=>`<p>${fn(p)}</p>`).join('')||'<p class="mute">No summary was written. Open a task to see what it did.</p>'}
  ${refs.length?`<div class="lb" style="margin-top:16px">${ic('file')}Notes</div><ol class="fnl">${refs.map(n=>`<li><sup><a href="#t${n}" data-open="${n-1}">${n}</a></sup> <a href="#t${n}" data-open="${n-1}">${esc(DATA[n-1].ti)}</a> · ${dt(DATA[n-1].t)}</li>`).join('')}</ol>`:''}</div>`;
- B.chips=`<div class="chips">${ch.map(c=>`<button class="chip" style="--c:var(${c[5]})" data-tab="${c[3]}" ${c[4]?`data-flt="${c[4]}"`:''}><i>${ic(c[0])}</i><div><b>${c[2]}</b><span>${c[1]}</span></div></button>`).join('')}</div>`;
+ B.chips=`<div class="chips">${ch.map((c,ci)=>`<button class="chip" style="--c:var(${c[5]})" data-tab="${c[3]}" ${c[4]?`data-flt="${c[4]}"`:''}><i>${ic(c[0])}</i><div><b>${c[2]}</b><span>${c[1]}</span></div>${SP[ci]&&SP[ci].length>1?sparkSvg(SP[ci],`var(${c[5]})`):''}</button>`).join('')}</div>`;
+ B.charts=chartsHtml();
  B.needs=`${w.length?`<div class="need"><div class="t"><i class="pulse"></i>Needs you</div>${w.slice(-3).map(i=>`<div style="margin-bottom:6px">${esc(DATA[i].ask)} <sup><a href="#t${i+1}" data-open="${i}">${i+1}</a></sup></div>`).join('')}<button data-tab="need">See all ${w.length}</button></div>`:''}`;
  B.why=`${(()=>{const L=[];DATA.forEach((d,i)=>d.tr.filter(x=>x[1]=='d').forEach(x=>L.push([i,x[0]])));const T=L.slice(-6).reverse();return T.length?`<div class="card"><div class="lb">${ic('dec')}Why it went this way</div>${T.map(([i,x])=>`<div class="tr d">${esc(x)} <sup><a href="#t${i+1}" data-open="${i}">${i+1}</a></sup></div>`).join('')}<div class="small mute">Decision-like notes the agent wrote while it worked, newest first.</div></div>`:''})()}`;
  B.strip=`<div class="card"><div class="lb">${ic('task')}The run, task by task</div><div class="strip">${DATA.map((d,i)=>`<button class="seg ${i==cur?'sel':''}" data-open="${i}" style="flex-grow:${Math.sqrt(mins[i]).toFixed(2)};background:${fillBg(d)}" aria-label="Task ${i+1}: ${esc(d.ti)}" title="${i+1}. ${esc(d.ti)}"></button>`).join('')}</div><div class="axis"><span>${dt(DATA[0].t)}</span><span>segment width = time spent, shortened</span><span>${dt(DATA[N-1].e)}</span></div></div>`;
  const ord=STY.order.includes('hero')?STY.order:['hero',...STY.order];
  $('v-over').innerHTML=ord.map(k=>B[k]||'').join('')}
+
+/* ---- charts: plain SVG, one axis, thin marks, selective labels, hover tips, table view ---- */
+const DAY=m=>{const x=U(m);return Date.UTC(x.getUTCFullYear(),x.getUTCMonth(),x.getUTCDate())/864e5|0};
+const dlab=k=>{const x=new Date(k*864e5);return x.getUTCDate()+' '+MO[x.getUTCMonth()]};
+function perDay(f){const m=new Map();DATA.forEach(d=>{const k=DAY(d.t);m.set(k,(m.get(k)||0)+f(d))});const ks=[...m.keys()],b=Math.max(...ks),a=Math.max(Math.min(...ks),b-59),r=[];for(let k=a;k<=b;k++)r.push({k,l:dlab(k),v:m.get(k)||0});return r}
+function barsSvg(rows,unit,col,h){h=h||120;const W=420,L=28,B=18,T=8,n=rows.length,mx=Math.max(1,...rows.map(r=>r.v)),pw=W-L-4,step=pw/n,bw=Math.max(2,Math.min(22,step-2)),ph=h-T-B;let g='';
+ [0,.5,1].forEach(t=>{const y=T+ph*(1-t);g+=`<line x1="${L}" x2="${W}" y1="${y}" y2="${y}" stroke="var(--line)" ${t?'stroke-dasharray="2 3"':''}/><text x="${L-5}" y="${y+3}" text-anchor="end" font-size="9" fill="var(--mute)">${Math.round(mx*t)}</text>`});
+ rows.forEach((r,i)=>{const x=L+i*step+(step-bw)/2,bh=ph*r.v/mx,y=T+ph-bh,rd=Math.min(4,bw/2,bh),tip=esc(r.l)+': '+r.v+' '+unit;
+  if(r.v>0)g+=`<path class="mk" d="M${x.toFixed(1)} ${(y+bh).toFixed(1)}V${(y+rd).toFixed(1)}Q${x.toFixed(1)} ${y.toFixed(1)} ${(x+rd).toFixed(1)} ${y.toFixed(1)}H${(x+bw-rd).toFixed(1)}Q${(x+bw).toFixed(1)} ${y.toFixed(1)} ${(x+bw).toFixed(1)} ${(y+rd).toFixed(1)}V${(y+bh).toFixed(1)}Z" fill="${col}" data-tip="${tip}" tabindex="0"/>`;
+  else g+=`<rect x="${x.toFixed(1)}" y="${T+ph-1.5}" width="${bw}" height="1.5" fill="var(--line)" data-tip="${tip}"/>`});
+ [0,Math.floor((n-1)/2),n-1].filter((v,i,a)=>a.indexOf(v)==i).forEach(i=>{g+=`<text x="${(L+i*step+step/2).toFixed(1)}" y="${h-4}" text-anchor="middle" font-size="9" fill="var(--mute)">${esc(rows[i].l)}</text>`});
+ return `<svg viewBox="0 0 ${W} ${h}" role="img" aria-label="${esc(unit)} per day, ${rows.length} days">${g}</svg>`}
+function hbarsSvg(rows,unit,col){const W=420,L=84,R=44,rh=24,mx=Math.max(1,...rows.map(r=>r.v));
+ return `<svg viewBox="0 0 ${W} ${rows.length*rh+4}" role="img" aria-label="${esc(unit)} by group">${rows.map((r,i)=>{const y=i*rh+2,w=Math.max(3,(W-L-R)*r.v/mx);return `<text x="${L-8}" y="${y+15}" text-anchor="end" font-size="11" fill="var(--fg)">${esc(r.l)}</text><rect class="mk" x="${L}" y="${y+4}" width="${w.toFixed(1)}" height="12" rx="3" fill="${col}" data-tip="${esc(r.l)}: ${r.v} ${unit}" tabindex="0"/><text x="${(L+w+6).toFixed(1)}" y="${y+15}" font-size="11" fill="var(--mute)">${r.v}</text>`}).join('')}</svg>`}
+function ringSvg(f,big,sub){const r=40,c=2*Math.PI*r;return `<svg viewBox="0 0 110 110" style="width:110px;flex:none" role="img" aria-label="${esc(big+' '+sub)}"><circle cx="55" cy="55" r="${r}" fill="none" stroke="var(--soft)" stroke-width="10"/><circle cx="55" cy="55" r="${r}" fill="none" stroke="var(--blk-done)" stroke-width="10" stroke-linecap="round" stroke-dasharray="${(f*c).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 55 55)"/><text x="55" y="56" text-anchor="middle" font-size="22" font-family="var(--serif)" fill="var(--fg)">${esc(big)}</text><text x="55" y="71" text-anchor="middle" font-size="9" fill="var(--mute)">${esc(sub)}</text></svg>`}
+function stackHtml(parts){return `<div class="stk">${parts.filter(p=>p.v).map(p=>`<i style="flex:${p.v};background:${p.c}" data-tip="${esc(p.l)}: ${p.v}" tabindex="0"></i>`).join('')}</div><div class="leg">${parts.map(p=>`<span><b style="background:${p.c}"></b>${esc(p.l)} ${p.v}</span>`).join('')}</div>`}
+function heatSvg(rows){const C=20,G=4,dow=(new Date(rows[0].k*864e5).getUTCDay()+6)%7,wk=Math.ceil((rows.length+dow)/7),mx=Math.max(1,...rows.map(r=>r.v));
+ const cells=rows.map((r,i)=>{const j=i+dow,x=Math.floor(j/7)*(C+G)+28,y=(j%7)*(C+G)+4,lv=r.v?Math.ceil(4*r.v/mx):0;return `<rect x="${x}" y="${y}" width="${C}" height="${C}" rx="3" fill="${lv?`color-mix(in srgb,var(--gold) ${15+lv*21}%,var(--soft))`:'var(--soft)'}" data-tip="${esc(r.l)}: ${r.v} task${r.v==1?'':'s'}" tabindex="0"/>`}).join('');
+ const lab=['Mon','Wed','Fri'].map((t,i)=>`<text x="0" y="${i*2*(C+G)+4+C-5}" font-size="10" fill="var(--mute)">${t}</text>`).join('');
+ return `<svg class="hm" viewBox="0 0 ${wk*(C+G)+30} ${7*(C+G)+8}" style="width:${wk*(C+G)+30}px;max-width:none" role="img" aria-label="Tasks per day calendar">${lab}${cells}</svg>`}
+function sparkSvg(vals,col){const W=54,H=22,mx=Math.max(1,...vals),n=Math.max(1,vals.length-1),pts=vals.map((v,i)=>[(i/n*W).toFixed(1),(H-2-(H-4)*v/mx).toFixed(1)]);return `<svg class="spark" viewBox="0 0 ${W} ${H}" aria-hidden="true"><path d="M0 ${H} L${pts.map(p=>p.join(' ')).join(' L')} L${W} ${H}Z" fill="${col}" opacity=".16"/><polyline points="${pts.map(p=>p.join(',')).join(' ')}" fill="none" stroke="${col}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`}
+const cum=f=>{let a=0;const v=DATA.map(d=>a+=f(d));const k=Math.ceil(v.length/24);return v.length>24?v.filter((x,i)=>i%k==0||i==v.length-1):v};
+const tbl=rows=>`<details class="tv"><summary>Table view</summary><table>${rows.map(r=>`<tr><td>${esc(r[0])}</td><td class="num">${esc(r[1])}</td></tr>`).join('')}</table></details>`;
+const fileTypes=()=>{const e={};DATA.forEach(d=>Object.entries(d.fl).forEach(([k,v])=>{const m=/\.([a-z0-9]+)$/i.exec(k),x=m?'.'+m[1].toLowerCase():'other';e[x]=(e[x]||0)+v}));let r=Object.entries(e).sort((a,b)=>b[1]-a[1]);if(r.length>7){const o=r.slice(6).reduce((a,x)=>a+x[1],0);r=r.slice(0,6).concat([['other',o]])}return r.map(([l,v])=>({l,v}))};
+function chartsHtml(){const s=stat(),f=s.all.length?s.dn/s.all.length:1,st={done:0,wait:0,open:0};DATA.forEach(d=>st[status(d)]++);
+ const td=perDay(()=>1),dd=perDay(d=>d.de.length),sd=perDay(d=>shipped(d)),ft=fileTypes(),days=new Set(DATA.map(d=>DAY(d.t))).size;
+ const card=(ic_,t,body,sub,tb,cls)=>`<div class="card cc ${cls||''}"><div class="lb">${ic(ic_)}${t}</div>${body}${sub?`<div class="small mute" style="margin-top:6px">${sub}</div>`:''}${tb||''}</div>`;
+ return `<div class="cgrid">`
+ +card('steps','Plan completion',`<div class="row" style="flex-wrap:nowrap;gap:16px">${ringSvg(f,Math.round(f*100)+'%','of steps')}<div style="flex:1;min-width:0">${stackHtml([{l:'Finished',v:st.done,c:'var(--blk-done)'},{l:'Waiting on you',v:st.wait,c:'var(--blk-wait)'},{l:'Plan unfinished',v:st.open,c:'var(--blk-open)'}])}</div></div>`,s.dn+' of '+s.all.length+' steps done across '+N+' tasks.',tbl([['Finished tasks',st.done],['Waiting on you',st.wait],['Plan unfinished',st.open]]))
+ +card('task','Tasks per day',barsSvg(td,'tasks','var(--gold)'),'How much work landed each day.',tbl(td.map(r=>[r.l,r.v])))
+ +card('file','What changed, by file type',ft.length?hbarsSvg(ft,'edits','var(--good)'):'<div class="small mute">No files were changed.</div>','Edits summed over all tasks.',tbl(ft.map(r=>[r.l,r.v])))
+ +card('dec','Decisions and shipped work',`<div class="small mute">Decisions per day</div>${barsSvg(dd,'decisions','var(--info)',70)}<div class="small mute" style="margin-top:8px">Shipped per day (commits, deploys, links)</div>${barsSvg(sd,'shipped','var(--good)',70)}`,'',tbl(dd.map((r,i)=>[r.l,r.v+' decisions, '+sd[i].v+' shipped'])))
+ +(days>=6?card('task','Work calendar',`<div style="overflow-x:auto">${heatSvg(td)}</div>`,'Darker means more tasks that day.',tbl(td.map(r=>[r.l,r.v])),'wide'):'')
+ +`</div>`}
+const tipEl=document.createElement('div');tipEl.id='tip';tipEl.setAttribute('role','tooltip');document.body.appendChild(tipEl);
+function showTip(e){const t=e.target&&e.target.closest?e.target.closest('[data-tip]'):null;if(!t){tipEl.classList.remove('on');return}tipEl.textContent=t.dataset.tip;tipEl.classList.add('on');const b=t.getBoundingClientRect(),x=e.clientX||b.left+b.width/2,y=e.clientY||b.top;tipEl.style.left=Math.max(6,Math.min(x+12,innerWidth-tipEl.offsetWidth-8))+'px';tipEl.style.top=Math.max(6,y-34)+'px'}
+document.addEventListener('pointermove',showTip);document.addEventListener('focusin',showTip);document.addEventListener('focusout',()=>tipEl.classList.remove('on'));
 function blk(i,ok){const d=DATA[i],full=frac(d)>=1;return `<button class="blk ${full?'full':''} ${i==cur?'sel':''} ${ok?'':'dim'}" data-open="${i}" style="background:${fillBg(d)}" aria-label="Task ${i+1}: ${esc(d.ti)}" title="${esc(d.ti)}"><span>${i+1}</span>${d.de.length?'<i>◆</i>':shipped(d)?'<i>▲</i>':''}</button>`}
 
 function filters(){$('filters').innerHTML=Object.entries(F).map(([k,v])=>`<button data-flt="${k}" class="${k==flt?'on':''}">${v[0]} ${DATA.filter(d=>v[1](d)).length}</button>`).join('')}
@@ -205,15 +253,16 @@ function tasks(){filters();$('lv').textContent=lm?'Block view':'List view';$('lv
   $('days').innerHTML=Object.keys(g).sort((a,b)=>a-b).map(k=>{const x=U(DATA[g[k][0]].t);return `<div class="day"><div class="d">${x.getUTCDate()} ${MO[x.getUTCMonth()]}</div><div class="blks">${g[k].map(i=>{const v=vis(i);if(v)n++;return blk(i,v)}).join('')}</div></div>`}).join('')}
  $('count').textContent=n+' of '+N+' shown'}
 
-function decs(){const L=[];DATA.forEach((d,i)=>d.de.forEach(y=>L.push([i,y])));L.reverse();
- $('v-decs').innerHTML=`<div class="row sp" style="margin-bottom:12px"><h2>${L.length} decision${L.length==1?'':'s'}</h2><span class="small mute">Newest first. Your answer is in green.</span></div><div class="tl">`+(L.map(([i,y])=>`<div class="tn ${y.a?'':'q'}"><div class="card" style="margin:0"><div style="margin-bottom:8px;font-family:var(--serif);font-size:16px">${esc(y.q)}</div><div>${y.o.map(o=>`<span class="cp ${y.a&&y.a.toLowerCase()==o.toLowerCase()?'pick':''}">${y.a&&y.a.toLowerCase()==o.toLowerCase()?'✓ ':''}${esc(o)}</span>`).join('')}</div><div class="small mute" style="margin-top:4px">${y.a?'Your answer: "'+esc(y.a)+'"':'No answer recorded.'} · <a href="#t${i+1}" data-open="${i}">Task ${i+1}</a> · ${dt(DATA[i].t)}</div></div></div>`).join('')||'<p class="mute">No decisions were needed.</p>')+'</div>'}
+function decs(){const L=[];DATA.forEach((d,i)=>d.de.forEach(y=>L.push([i,y])));L.reverse();const ans=L.filter(x=>x[1].a).length,dpd=L.length?perDay(d=>d.de.length):[];
+ $('v-decs').innerHTML=`<div class="row sp" style="margin-bottom:12px"><h2>${L.length} decision${L.length==1?'':'s'}</h2><span class="small mute">Newest first. Your answer is in green.</span></div>${L.length?`<div class="cgrid"><div class="card cc"><div class="lb">${ic('dec')}Answered</div>${stackHtml([{l:'Answered',v:ans,c:'var(--good)'},{l:'No answer recorded',v:L.length-ans,c:'var(--blk-wait)'}])}</div><div class="card cc"><div class="lb">${ic('task')}Decisions per day</div>${barsSvg(dpd,'decisions','var(--info)',80)}</div></div>`:''}<div class="tl">`+(L.map(([i,y])=>`<div class="tn ${y.a?'':'q'}"><div class="card" style="margin:0"><div style="margin-bottom:8px;font-family:var(--serif);font-size:16px">${esc(y.q)}</div><div>${y.o.map(o=>`<span class="cp ${y.a&&y.a.toLowerCase()==o.toLowerCase()?'pick':''}">${y.a&&y.a.toLowerCase()==o.toLowerCase()?'✓ ':''}${esc(o)}</span>`).join('')}</div><div class="small mute" style="margin-top:4px">${y.a?'Your answer: "'+esc(y.a)+'"':'No answer recorded.'} · <a href="#t${i+1}" data-open="${i}">Task ${i+1}</a> · ${dt(DATA[i].t)}</div></div></div>`).join('')||'<p class="mute">No decisions were needed.</p>')+'</div>'}
 
 function chg(){const F2={};DATA.forEach((d,i)=>Object.entries(d.fl).forEach(([k,v])=>{const o=F2[k]=F2[k]||{n:0,t:[]};o.n+=v;o.t.push(i)}));
  const fl=Object.entries(F2).sort((a,b)=>b[1].n-a[1].n),lim=showAll?fl.length:40,mx=fl.length?fl[0][1].n:1;
  const sec=(t,k,rows)=>rows.length?`<div class="card"><div class="lb">${ic(k)}${t}</div>${rows.join('')}</div>`:'';
  const ref=i=>`<a href="#t${i+1}" data-open="${i}">Task ${i+1}</a>`;
  const cm=[],dp=[],ln=[];DATA.forEach((d,i)=>{d.cm.forEach(c=>cm.push(`<div class="fd">${esc(c)} <span class="small mute">· ${ref(i)}</span></div>`));d.dp.forEach(c=>dp.push(`<div class="fd">${esc(c)} <span class="small mute">· ${ref(i)}</span></div>`));d.ln.forEach(l=>ln.push(`<div class="fd"><a href="https://claude.ai/artifact/${esc(l)}">artifact ${esc(l.slice(0,6))}</a> <span class="small mute">· ${ref(i)}</span></div>`))});
- $('v-chg').innerHTML=(fl.length?`<div class="card"><div class="lb">${ic('file')}${fl.length} file${fl.length==1?'':'s'} changed</div><table><tr><th>File</th><th class="num">Edits</th><th>Tasks</th></tr>${fl.slice(0,lim).map(([k,o])=>`<tr><td style="overflow-wrap:anywhere">${esc(k)}</td><td class="num"><span class="eb" style="width:${Math.max(4,o.n/mx*70)}px"></span>${o.n}</td><td>${o.t.slice(-4).map(ref).join(', ')}${o.t.length>4?' +'+(o.t.length-4):''}</td></tr>`).join('')}</table>${fl.length>40?`<button id="sa" style="margin-top:10px">${showAll?'Show fewer':'Show all '+fl.length}</button>`:''}</div>`:'')+sec('Commits','task',cm)+sec('Deployed','ship',dp)+sec('Published','ship',ln)||'<p class="mute">Nothing was changed.</p>';
+ const ftc=fl.length?`<div class="card"><div class="lb">${ic('file')}By file type</div>${hbarsSvg(fileTypes(),'edits','var(--good)')}</div>`:'';
+ $('v-chg').innerHTML=ftc+(fl.length?`<div class="card"><div class="lb">${ic('file')}${fl.length} file${fl.length==1?'':'s'} changed</div><table><tr><th>File</th><th class="num">Edits</th><th>Tasks</th></tr>${fl.slice(0,lim).map(([k,o])=>`<tr><td style="overflow-wrap:anywhere">${esc(k)}</td><td class="num"><span class="eb" style="width:${Math.max(4,o.n/mx*70)}px"></span>${o.n}</td><td>${o.t.slice(-4).map(ref).join(', ')}${o.t.length>4?' +'+(o.t.length-4):''}</td></tr>`).join('')}</table>${fl.length>40?`<button id="sa" style="margin-top:10px">${showAll?'Show fewer':'Show all '+fl.length}</button>`:''}</div>`:'')+sec('Commits','task',cm)+sec('Deployed','ship',dp)+sec('Published','ship',ln)||'<p class="mute">Nothing was changed.</p>';
  const sa=$('sa');if(sa)sa.onclick=()=>{showAll=!showAll;chg()}}
 
 function need(){const w=DATA.map((d,i)=>i).filter(i=>DATA[i].ask).reverse();

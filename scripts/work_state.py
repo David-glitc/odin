@@ -55,7 +55,7 @@ DECISION = re.compile(r"\b(because|so I|instead|rather than|decid\w*|chose|choos
 def note(cur, text, t, kind):
     """Keep short 'why' sentences the agent wrote between tool calls (or its thinking, when the transcript keeps it).
     k = 'd' for a decision-like sentence (because, instead, root cause, ...), else 'n'."""
-    x = re.sub(r'\s+', ' ', re.sub(r'```.*?```|[`*#>]', '', text or '', flags=re.S)).strip()
+    x = re.sub(r'\s+', ' ', re.sub(r'```.*?```|[`*#>]', '', re.sub(r'\[([^\]]+)\]\([^)]*\)', r'\1', text or ''), flags=re.S)).strip()
     if len(x) < 30: return
     sents = re.split(r'(?<=[.!?])\s+', x)
     x = ' '.join(sents[:2]) if len(x) > 300 else x

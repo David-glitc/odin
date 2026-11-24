@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """build_work_view.py <session|id|project-dir> [--all | --last N] [--name NAME] [--goal TEXT] [--summary summary.json] [-o out.html] [--standalone] [--live] [--style style.json|auto|default]
 --summary takes {"goal": "...", "paragraphs": ["Plain sentence.[3] Another.[5]"]}: write it yourself in short STE sentences; [n] links to task n.
---style takes {"palette": gold|ember|ocean|forest|violet|ink, "font": serif|sans|mono, "motif": ring|grid|dots|none, "density": airy|compact, "order": [live,hero,chips,needs,why,strip], "why": "one sentence"}. The default is auto: a look picked from the project name. Choose one yourself from the work.
+--style takes {"palette": gold|ember|ocean|forest|violet|ink, "font": serif|sans|mono, "motif": ring|grid|dots|none, "density": airy|compact, "order": [live,hero,chips,charts,needs,why,strip], "why": "one sentence"}. The default is auto: a look picked from the project name. Choose one yourself from the work.
 --live turns on the Inbox tab, the Live now card, answer buttons and comments. Publish it with the capabilities in references/live.md.
 Without --summary Odin writes a short factual summary from the data.
 Fills assets/work_view.html with the WORK of a session (goals, steps, findings, decisions, outputs).
