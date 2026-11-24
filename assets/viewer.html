@@ -1,0 +1,111 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Agent Trace</title>
+<style>
+:root,:root[data-theme=dark]{--bg:#0d1117;--panel:#161b22;--line:#30363d;--fg:#e6edf3;--mute:#8b949e;--c0:#58a6ff;--c1:#3fb950;--c2:#d29922;--c3:#bc8cff;--c4:#39c5cf;--c5:#f778ba;--c6:#8b949e;--err:#f85149}
+@media(prefers-color-scheme:light){:root:not([data-theme=dark]){--bg:#f6f8fa;--panel:#fff;--line:#d0d7de;--fg:#1f2328;--mute:#656d76;--c0:#0969da;--c1:#1a7f37;--c2:#9a6700;--c3:#8250df;--c4:#1b7c83;--c5:#bf3989;--c6:#6e7781;--err:#cf222e}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,sans-serif;padding:16px;max-width:1280px;margin:auto}
+h1{font-size:20px;margin:0 0 4px}h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--mute);margin:0 0 8px}
+.sub{color:var(--mute);font-size:12px;word-break:break-all}.chips{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.chip{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 10px}.chip b{display:block;font-size:18px}.chip span{font-size:11px;color:var(--mute)}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:12px}
+pre.adset{margin:0;white-space:pre-wrap;font:13px/1.5 ui-monospace,monospace}
+.replay{display:grid;grid-template-columns:2fr 1fr;gap:12px}@media(max-width:760px){.replay{grid-template-columns:1fr}}
+#feed{height:340px;overflow:auto;font:12px/1.5 ui-monospace,monospace}#feed div{padding:1px 0;border-bottom:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}.ctl input[type=range]{flex:1;min-width:140px}
+button{background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:4px 10px;cursor:pointer}button.on{border-color:var(--c0);color:var(--c0)}
+svg text{fill:var(--mute);font-size:10px}.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--mute);margin-top:6px}.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px}
+canvas{width:100%;display:block}#tip{position:fixed;pointer-events:none;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:4px 8px;font-size:12px;display:none;max-width:420px;z-index:9}@media print{button,#scrub{display:none}body{background:#fff}}
+:root[data-theme=light]{--bg:#f6f8fa;--panel:#fff;--line:#d0d7de;--fg:#1f2328;--mute:#656d76;--c0:#0969da;--c1:#1a7f37;--c2:#9a6700;--c3:#8250df;--c4:#1b7c83;--c5:#bf3989;--c6:#6e7781;--err:#cf222e}</style></head><body>
+<div style="display:flex;justify-content:space-between;gap:8px"><h1 id="title">Agent trace</h1><span><a href="index.html" id="back" style="color:var(--c0);margin-right:10px;font-size:13px">All runs</a><button id="theme">Theme</button></span></div><div class="sub" id="src"></div>
+<div class="chips" id="chips"></div>
+<div class="panel"><h2>Work brief: read, looked for, found (ASD-STE100)</h2><pre class="adset" id="adset"></pre></div>
+<div class="panel"><h2>Animated replay</h2>
+ <div class="replay"><svg id="graph" viewBox="0 0 640 340" width="100%"></svg><div id="feed"></div></div>
+ <div class="ctl"><button id="play">Play</button><button data-s="4">4x</button><button data-s="16" class="on">16x</button><button data-s="64">64x</button><button data-s="256">256x</button>
+ <input type="range" id="scrub" min="0" max="1000" value="0"><span id="clock" class="sub"></span><button id="live" style="display:none">Follow live</button></div>
+ <div class="sub">Idle gaps over 30s are compressed so multi-day sessions replay in minutes. Errors flash red.</div>
+ <h2 style="margin-top:12px">Swimlanes (one row per agent, colour = tool family)</h2><canvas id="lanes" height="150"></canvas><div class="legend" id="legend"></div></div>
+<div class="grid" id="charts"></div>
+<div id="tip"></div><script>
+const TR=/*TRACE*/null,ADSET=/*ADSET*/"",LIVE=/*LIVE*/false;
+let CC={};const FAM=[['Shell',/^Bash|Monitor|terminal/],['Files',/^(Read|Edit|Write|Notebook)/],['Search',/^(Grep|Glob|ToolSearch|Web)/],['Agents',/^(Agent|Task|Send|mcp__ccd_session)/],['Browser',/chrome|browser/i],['MCP',/^mcp__/],['Other',/./]];
+const COL=['--c0','--c1','--c2','--c3','--c4','--c5','--c6'];const css=n=>CC[n]||(CC[n]=getComputedStyle(document.documentElement).getPropertyValue(n).trim());
+const fam=n=>FAM.findIndex(f=>f[1].test(n));const $=id=>document.getElementById(id);
+const GAP=30,calls=TR.calls;const cnt={};calls.forEach(c=>cnt[c.agent]=(cnt[c.agent]||0)+1);
+const MAXA=12;let agents=[...TR.agents].sort((a,b)=>a.id=='main'?-1:b.id=='main'?1:(cnt[b.id]||0)-(cnt[a.id]||0));
+const extra=agents.slice(MAXA);agents=agents.slice(0,MAXA);if(extra.length)agents.push({id:'__more',label:'+'+extra.length+' more',type:'others'});
+const aIdx={};agents.forEach((a,i)=>aIdx[a.id]=i);extra.forEach(a=>aIdx[a.id]=agents.length-1);
+// time compression
+const pts=[...new Set([0,TR.duration,...calls.flatMap(c=>c.t1==null?[c.t0]:[c.t0,c.t1]),...TR.tokens.map(k=>k.t)])].sort((a,b)=>a-b);
+const virt=[0];for(let i=1;i<pts.length;i++)virt[i]=virt[i-1]+Math.min(pts[i]-pts[i-1],GAP);
+function toV(t){let lo=0,hi=pts.length-1;while(lo<hi){const m=(lo+hi+1)>>1;pts[m]<=t?lo=m:hi=m-1}return virt[lo]+(lo<pts.length-1?Math.min(t-pts[lo],GAP):0)}
+const VEND=virt[virt.length-1]||1;calls.forEach(c=>{c.v0=toV(c.t0);c.v1=c.t1==null?VEND:toV(c.t1);c.f=fam(c.name);c.ai=aIdx[c.agent]});
+const fmt=s=>s>=5400?(s/3600).toFixed(1)+'h':s>=90?(s/60).toFixed(0)+'m':s.toFixed(0)+'s';
+// header
+$('title').textContent=TR.title||('Agent trace '+TR.session.slice(0,8));document.title=($('title').textContent).slice(0,60)+' · trace';$('src').textContent=TR.source;$('adset').textContent=ADSET;
+const sum=a=>a.reduce((x,y)=>x+y,0),errs=calls.filter(c=>c.err).length,tout=sum(TR.tokens.map(k=>k.out)),tin=sum(TR.tokens.map(k=>k.inp+k.cw)),tcr=sum(TR.tokens.map(k=>k.cr));
+[['Duration',fmt(TR.duration)],['Tool calls',calls.length],['Agents',agents.length],['Swarm peak',TR.peak_parallel_calls],['Errors',errs+' ('+(100*errs/Math.max(1,calls.length)).toFixed(1)+'%)'],['Out tok',(tout/1e3).toFixed(0)+'k'],['In tok',(tin/1e3).toFixed(0)+'k'],['Cache hit',(100*tcr/Math.max(1,tcr+tin)).toFixed(0)+'%']]
+ .forEach(([l,v])=>$('chips').insertAdjacentHTML('beforeend',`<div class="chip"><b>${v}</b><span>${l}</span></div>`));
+$('legend').innerHTML=FAM.map((f,i)=>`<span><i style="background:var(${COL[i]})"></i>${f[0]}</span>`).join('');
+// graph
+const svg=$('graph'),NS='http://www.w3.org/2000/svg',el=(t,a,p=svg)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);p.appendChild(e);return e};
+const famPos=FAM.map((f,i)=>{const a=-Math.PI/2+i*2*Math.PI/FAM.length;return[320+270*Math.cos(a),170+130*Math.sin(a)]});
+const agPos=agents.map((a,i)=>{if(i==0)return[320,170];const k=agents.length-1,an=-Math.PI/2+(i-1)*2*Math.PI/k+.4;return[320+(k>1?85:0)*Math.cos(an),170+(k>1?60:70)*Math.sin(an)+(k>1?0:0)]});
+const edges={},fnode=[],anode=[];
+famPos.forEach((p,i)=>{fnode.push(el('circle',{cx:p[0],cy:p[1],r:14,fill:'none',stroke:css(COL[i]),'stroke-width':2,opacity:.35}));const t=el('text',{x:p[0],y:p[1]+26,'text-anchor':'middle'});t.textContent=FAM[i][0]});
+agents.forEach((a,i)=>{const p=agPos[i];anode.push(el('circle',{cx:p[0],cy:p[1],r:i?14:22,fill:css('--bg'),stroke:css('--fg'),'stroke-width':2}));const t=el('text',{x:p[0],y:p[1]+(i?28:36),'text-anchor':'middle'});t.textContent=(i?a.label:'main').slice(0,22)});
+const sparks=[];
+function spark(c,bad){const a=agPos[c.ai]||agPos[0],f=famPos[c.f];sparks.push({a,f,t:0,col:bad?css('--err'):css(COL[c.f])})}
+function drawSparks(dt){sparks.forEach(s=>{s.t+=dt*2;if(!s.e)s.e=el('circle',{r:3.5,fill:s.col});const k=Math.min(1,s.t);s.e.setAttribute('cx',s.a[0]+(s.f[0]-s.a[0])*k);s.e.setAttribute('cy',s.a[1]+(s.f[1]-s.a[1])*k);s.e.setAttribute('opacity',1-k*.6);if(s.t>=1)s.e.remove()});for(let i=sparks.length-1;i>=0;i--)if(sparks[i].t>=1)sparks.splice(i,1)}
+// lanes
+const cv=$('lanes');const LH=Math.max(24,Math.min(34,150/agents.length));cv.height=agents.length*LH+16;
+let laneBG=null,laneW=0,laneKey='';
+function laneBase(w,h){const o=document.createElement('canvas');o.width=w;o.height=h;const g=o.getContext('2d');g.font=(10*devicePixelRatio)+'px sans-serif';
+ const X=x=>x/VEND*(w-90*devicePixelRatio)+80*devicePixelRatio,L=LH*devicePixelRatio;g.fillStyle=css('--mute');agents.forEach((a,i)=>g.fillText((i?a.label:'main').slice(0,12),2,i*L+L*.65+8));
+ const cols=COL.map(n=>css(n)),er=css('--err');calls.forEach(c=>{g.fillStyle=c.err?er:cols[c.f];const x=X(c.v0);g.fillRect(x,c.ai*L+4,Math.max(1.5,X(c.v1)-x),L-8)});return o}
+let lastLv=-1;function drawLanes(v){const w=Math.round(cv.clientWidth*devicePixelRatio),h=Math.round(cv.height),key=w+'|'+(document.documentElement.dataset.theme||'');
+ if(key!==laneKey){cv.width=w;laneBG=laneBase(w,h);laneKey=key;lastLv=-1}const px=Math.round(v/VEND*w);if(px===lastLv)return;lastLv=px;
+ const g=cv.getContext('2d');g.clearRect(0,0,w,h);g.drawImage(laneBG,0,0);g.fillStyle=css('--fg');g.fillRect(v/VEND*(w-90*devicePixelRatio)+80*devicePixelRatio,0,2,h)}
+// charts
+const B=40,bucket=VEND/B;const bk=Array.from({length:B},()=>({o:0,i:0,c:0,e:0,n:0}));
+TR.tokens.forEach(k=>{const b=bk[Math.min(B-1,Math.floor(toV(k.t)/bucket))];b.o+=k.out;b.i+=k.inp+k.cw})
+calls.forEach(c=>{const b=bk[Math.min(B-1,Math.floor(c.v0/bucket))];b.n++;if(c.err)b.e++});
+function chart(title,body,note=''){const d=document.createElement('div');d.className='panel';d.innerHTML=`<h2>${title}</h2>${body}<div class="sub">${note}</div>`;$('charts').appendChild(d)}
+const W=420,H=190,P=30;
+function compound(){const mx=Math.max(1,...bk.map(b=>b.o+b.i)),cm=[];let s=0;if(!calls.length&&!TR.tokens.length)return;bk.forEach(b=>{s+=b.n;cm.push(s)});const bw=(W-P)/B;
+ let h='';bk.forEach((b,i)=>{const x=P+i*bw,hi=(b.i/mx)*(H-P),ho=(b.o/mx)*(H-P);h+=`<rect x="${x}" y="${H-10-hi}" width="${bw-1}" height="${hi}" fill="${css('--c0')}" opacity=".5"/><rect x="${x}" y="${H-10-hi-ho}" width="${bw-1}" height="${ho}" fill="${css('--c3')}"/>`;if(b.e)h+=`<circle cx="${x+bw/2}" cy="8" r="${2+Math.min(4,b.e)}" fill="${css('--err')}"/>`});
+ h+=`<polyline fill="none" stroke="${css('--c1')}" stroke-width="2" points="${cm.map((v,i)=>`${P+i*bw+bw/2},${H-10-v/Math.max(1,s)*(H-P)}`).join(' ')}"/>`;
+ chart('Compound: tokens per slice + cumulative calls + error dots',`<svg viewBox="0 0 ${W} ${H}" width="100%">${h}<text x="2" y="12">${(mx/1e3).toFixed(0)}k</text></svg>`,'Blue = input, purple = output, green line = cumulative tool calls, red dots = failures (replay time).')}
+function mix(){if(!calls.length)return;const m={};calls.forEach(c=>{m[c.name]=m[c.name]||{n:0,e:0};m[c.name].n++;if(c.err)m[c.name].e++});const top=Object.entries(m).sort((a,b)=>b[1].n-a[1].n).slice(0,10),mx=top[0][1].n;
+ chart('Tool mix (top 10, red = failed share)',`<svg viewBox="0 0 ${W} ${top.length*18+6}" width="100%">${top.map(([k,v],i)=>`<text x="0" y="${i*18+13}">${k.replace('mcp__','').slice(0,26)}</text><rect x="160" y="${i*18+3}" width="${v.n/mx*210}" height="12" fill="${css(COL[fam(k)])}"/><rect x="160" y="${i*18+3}" width="${v.e/mx*210}" height="12" fill="${css('--err')}"/><text x="${165+v.n/mx*210}" y="${i*18+13}">${v.n}</text>`).join('')}</svg>`)}
+function lat(){const d=calls.filter(c=>c.t1!=null).map(c=>c.t1-c.t0),ed=[.1,.5,1,3,10,30,60,180,600,1e9],lb=['<.1s','.1–.5','.5–1','1–3','3–10','10–30','30–60','1–3m','3–10m','>10m'],cn=ed.map(()=>0);d.forEach(x=>{cn[ed.findIndex(e=>x<e)]++});const mx=Math.max(1,...cn);
+ chart('Tool latency histogram',`<svg viewBox="0 0 ${W} ${H}" width="100%">${cn.map((n,i)=>`<rect x="${P+i*38}" y="${H-24-n/mx*(H-40)}" width="34" height="${n/mx*(H-40)}" fill="${css('--c4')}"/><text x="${P+i*38}" y="${H-10}">${lb[i]}</text><text x="${P+i*38}" y="${H-28-n/mx*(H-40)}">${n}</text>`).join('')}</svg>`)}
+function par(){const ev=calls.flatMap(c=>[[c.v0,1],[c.v1,-1]]).sort((a,b)=>a[0]-b[0]||a[1]-b[1]);let cur=0,pth='',mx=1;ev.forEach(e=>{cur+=e[1];mx=Math.max(mx,cur)});cur=0;let py=H-10;
+ ev.forEach(e=>{const x=P+e[0]/VEND*(W-P);pth+=`${x},${py} `;cur+=e[1];py=H-10-cur/mx*(H-30);pth+=`${x},${py} `});
+ chart('Parallelism (concurrent tool calls, swarm signal)',`<svg viewBox="0 0 ${W} ${H}" width="100%"><polyline fill="${css('--c2')}" fill-opacity=".25" stroke="${css('--c2')}" points="${P},${H-10} ${pth} ${W},${H-10}"/><text x="2" y="14">peak ${mx}</text></svg>`,TR.swarm?'Subagents present: '+agents.slice(1).map(a=>a.type).join(', '):'Solo run: no subagents spawned.')}
+function cache(){if(!TR.tokens.length)return;let s=0,c=0,pth='';TR.tokens.forEach((k,i)=>{s+=k.inp+k.cw+k.cr;c+=k.cr;if(i%Math.ceil(TR.tokens.length/120)==0)pth+=`${P+i/TR.tokens.length*(W-P)},${H-10-c/s*(H-30)} `});
+ chart('Cumulative cache hit ratio',`<svg viewBox="0 0 ${W} ${H}" width="100%"><polyline fill="none" stroke="${css('--c1')}" stroke-width="2" points="${pth}"/><text x="2" y="14">100%</text><text x="2" y="${H-12}">0</text></svg>`,'Higher means cheaper, faster turns.')}
+function errs_(){const e=calls.filter(c=>c.err).slice(-8).reverse();chart('Recent failures',e.length?e.map(c=>`<div class="sub">${c.name} · ${c.arg.slice(0,70)}</div>`).join(''):'<div class="sub">None.</div>')}
+function buildCharts(){$('charts').innerHTML='';compound();mix();lat();par();cache();errs_()}buildCharts();
+cv.addEventListener('mousemove',e=>{const r=cv.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,row=Math.floor((e.clientY-r.top)/LH),vx=(x*r.width-80)/(r.width-90)*VEND;let best=null,bd=1e9;for(const c of calls){if(aIdx[c.agent]!==row)continue;const d=vx<c.v0?c.v0-vx:vx>c.v1?vx-c.v1:0;if(d<bd){bd=d;best=c}if(c.v0>vx+VEND*.01)break}
+ const t=$('tip');if(best&&bd<VEND*.01){t.style.display='block';t.style.left=Math.min(innerWidth-440,e.clientX+12)+'px';t.style.top=e.clientY+12+'px';t.textContent=best.name.replace('mcp__','')+' · '+(best.t1==null?'no result':fmt(best.t1-best.t0))+(best.err?' · FAILED':'')+' · '+best.arg.slice(0,120)}else t.style.display='none'});
+cv.addEventListener('mouseleave',()=>$('tip').style.display='none');
+cv.addEventListener('click',e=>{const r=cv.getBoundingClientRect();seek(Math.max(0,((e.clientX-r.left)-80*r.width/cv.width*devicePixelRatio)/(r.width-90*r.width/cv.width*devicePixelRatio))*VEND)});
+// playback
+let v=0,playing=false,speed=16,last=performance.now(),fi=0,seen=new Set();const ev=[];calls.forEach(c=>{ev.push([c.v0,c,0]);if(c.t1!=null)ev.push([c.v1,c,1])});ev.sort((a,b)=>a[0]-b[0]);
+function feedAdd(c,end){const d=document.createElement('div');d.style.color=end&&c.err?css('--err'):css(COL[fam(c.name)]);d.textContent=`${fmt((c.t0)).padStart(5)} ${end?(c.err?'✗':'✓'):'▶'} ${(agents[aIdx[c.agent]]||{}).label?.slice(0,10)||''} ${c.name.replace('mcp__','')} ${c.arg.slice(0,60)}`;const f=$('feed');f.appendChild(d);while(f.childElementCount>200)f.firstChild.remove();f.scrollTop=f.scrollHeight}
+function seek(nv){v=Math.max(0,Math.min(VEND,nv));$('feed').innerHTML='';fi=ev.findIndex(e=>e[0]>v);if(fi<0)fi=ev.length;ev.slice(Math.max(0,fi-25),fi).forEach(e=>feedAdd(e[1],e[2]))}
+function frame(now){const dt=(now-last)/1000;last=now;if(playing){const nv=v+dt*speed;while(fi<ev.length&&ev[fi][0]<=nv){const e=ev[fi++];feedAdd(e[1],e[2]);if(e[2]==0)spark(e[1],false);else if(e[1].err)spark(e[1],true)}v=nv;if(v>=VEND){v=VEND;playing=false;$('play').textContent='Replay'}}
+ const act=new Array(FAM.length).fill(0),aa=new Array(agents.length).fill(0);for(const c of calls){if(c.v0>v)break;if(c.v1>v){act[c.f]++;aa[c.ai]++}}
+ fnode.forEach((n,i)=>{n.setAttribute('opacity',.35+Math.min(.65,act[i]*.25));n.setAttribute('r',14+Math.min(10,act[i]*2))});anode.forEach((n,i)=>n.setAttribute('stroke',aa[i]?css('--c1'):css('--mute')));
+ drawSparks(dt);drawLanes(v);$('scrub').value=v/VEND*1000;$('clock').textContent=`replay ${fmt(v)} / ${fmt(VEND)} · active ${sum(act)}`;requestAnimationFrame(frame)}
+$('play').onclick=()=>{if(v>=VEND)seek(0);playing=!playing;$('play').textContent=playing?'Pause':'Play'};
+document.querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{speed=+b.dataset.s;document.querySelectorAll('[data-s]').forEach(x=>x.classList.toggle('on',x==b))});
+$('scrub').oninput=e=>seek(e.target.value/1000*VEND);
+if(location.protocol=='file:'&&!/index\.html/.test(document.referrer)&&false)$('back').remove();if(LIVE){$('live').style.display='';$('live').onclick=()=>{seek(VEND)};const sv=sessionStorage.getItem('v');if(sv)seek(+sv);else seek(VEND);setInterval(()=>{sessionStorage.setItem('v',v>=VEND-1?VEND*10:v);location.reload()},4000)}
+else{seek(0)}
+document.addEventListener('keydown',e=>{if(e.target.tagName=='INPUT'&&e.key!=' ')return;if(e.key==' '){e.preventDefault();$('play').click()}else if(e.key=='ArrowRight')seek(v+VEND*.02);else if(e.key=='ArrowLeft')seek(v-VEND*.02);else if(e.key=='Home')seek(0);else if(e.key=='End')seek(VEND)});
+$('theme').onclick=()=>{const d=document.documentElement,dark=(d.dataset.theme||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'))=='dark';d.dataset.theme=dark?'light':'dark';CC={};buildCharts();location.hash='';};
+addEventListener('resize',()=>{laneKey=''});requestAnimationFrame(frame);
+</script></body></html>

@@ -1,0 +1,5 @@
+{"goal": "Add rate limiting to the public API so one client cannot take it down.",
+ "paragraphs": [
+  "The API now limits each client to 60 requests a minute. Tests pass.[1]",
+  "You asked for limits per API key, not per IP address. You chose in-memory counters. A key over its limit gets a 429 with a Retry-After header.[2]",
+  "Staging is live. The 61st request in a minute returns 429, as planned. Production waits for your answer.[3]"]}
