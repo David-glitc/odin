@@ -2,7 +2,8 @@
 
 ## 0.2.0 (2026-11-24)
 - Restyled work view: night and parchment palettes, serif display, icons, run strip, step-fill blocks, decision timeline, edit bars.
-- Two-way mode (`--live`): Inbox tab (note, new direction, pause, resume), answer buttons on Needs you, Live now card, task comments. See `references/live.md`.
+- Two-way mode (`--live`): prefilled quick actions on every task (Looks right, Redo this, Explain why, Stop here), answer buttons on Needs you, pause or resume the run, Live now card, task comments. No free-text box. See `references/live.md`.
+- Reasoning notes on every task ("How it got there") and a "Why it went this way" card on Overview, taken from the sentences the agent wrote between tool calls. No extra model calls.
 
 ## 0.1.0 (2026-11-24)
 First release.

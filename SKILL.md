@@ -21,6 +21,8 @@ For a swarm, add one lane per subagent with the same four elements and say why a
 - Session files: `~/.claude/projects/<project-dir>/<session-id>.jsonl`, subagents under `<session-id>/subagents/`.
 
 ## The work view
+Every task also shows short reasoning notes: the sentences the agent wrote between tool calls (and its thinking, where the transcript keeps it). A diamond marks decision-like ones. Overview collects them under "Why it went this way". Notes are free: they come from the transcript.
+
 `build_work_view.py` fills `assets/work_view.html` from a transcript. It leads with the **goal** and a plain-text **summary**. Footnote numbers in the summary open the task they came from. Five tabs:
 - **Overview**: goal, summary with footnotes, clickable chips (tasks, steps done, findings, decisions, files changed, shipped, waiting on you), what needs the user, and every task as a block.
 - **Tasks**: block or list view, filters, search. Click a task to open the **drawer**: the user's words, steps with progress, every finding, each decision with the user's answer, what changed, and a Needs you box.
@@ -34,8 +36,8 @@ Actions: Copy report, Copy task text, Copy link to a task (`#t5`), Replay (steps
 Without `--summary`, Odin writes a short factual summary from the data. A better one comes from you: `{"goal": "one plain line", "paragraphs": ["Short active sentence.[3] Next sentence.[5]"]}`. `[n]` is a task number and becomes a footnote link. Write in ASD-STE100 style (`references/asd-ste100.md`): one idea per sentence, active voice, numbers with units. Say what the work did and why, not how many tools ran.
 Output is an artifact-ready fragment. `--standalone` writes a full page for hosting. `work_state.py --coverage` prints the totals, so you can check that nothing was dropped.
 
-## Two-way: live view and inbox
-With `--live` the artifact can take instructions from the user and show live progress. Read `references/live.md` first. In short: publish with the `db`, `user` and `comments` capabilities listed there. At the start of every turn and at each milestone, read `inbox` rows with `status == queued` through `ArtifactData`, act on them, set them to `seen` then `done` with a short `reply`, and keep `live/now` current. The page updates by itself, so you do not republish for progress. Rows cannot interrupt a running step, and the inline widget's `sendPrompt` stays the way to get an instant reply.
+## Two-way: live view and quick actions
+With `--live` the artifact shows live progress and gives the user prefilled action buttons (no free text). Read `references/live.md` first. In short: publish with the `db`, `user` and `comments` capabilities listed there. At the start of every turn and at each milestone, read `inbox` rows with `status == queued` through `ArtifactData` (one query, no polling), act on them, set them to `seen` then `done` with a short `reply`, and keep `live/now` current. The page updates by itself, so you do not republish for progress. Rows cannot interrupt a running step, and the inline widget's `sendPrompt` stays the way to get an instant reply.
 
 ## How to display (use the host's own visuals)
 1. **Inline in chat**: load `mcp__visualize__read_me` (modules `interactive`), then `mcp__visualize__show_widget`. Build a work view: task tabs, goal, animated step checklist with progress bar and Replay button, "Where it stands", a "Needs you" box and change chips. Use the host CSS variables. Explanations go in normal text, not in the widget.

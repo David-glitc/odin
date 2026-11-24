@@ -23,13 +23,20 @@ def first(x, n=72):
         pick = cut if 35 <= len(cut) <= n else pick[:n].rsplit(' ', 1)[0] + '...'
     return pick
 
+def trace(notes, n=6):
+    """Up to n reasoning snippets in time order, decision-like ones first priority."""
+    dec = [x for x in notes if x['k'] == 'd'][:4]
+    rest = [x for x in notes if x['k'] != 'd'][:max(0, n - len(dec))]
+    pick = sorted(dec + rest, key=lambda x: x['t'])
+    return [[x['x'][:230], 'd' if x['k'] == 'd' else 'n'] for x in pick]
+
 def slim(d):
     fi = [dict(t=round(f['t']), x=f['x'][:300]) for f in d['findings'][-3:]]
     return dict(t=round(d['t0']), e=round(d['t1']), g=d['goal'][:110], ti=first(fi[0]['x']) if fi else d['goal'][:60],
         st=[[s['c'][:70], s['s'][0]] for s in d['steps']][:8], fi=fi,
         de=[dict(q=y['q'][:120], o=y['o'][:3], a=y['a'][:80]) for y in d['decisions'][-4:]],
         fl=dict(sorted(d['files'].items(), key=lambda x: -x[1])[:8]), nfl=len(d['files']), cm=[c[:60] for c in d['commits'][:3]],
-        dp=[c[:50] for c in d['deploys'][:3]], ln=[l.split('/')[-1] for l in d['links'][:2]], ask=d['ask'][:120], op=d['options'][:3])
+        dp=[c[:50] for c in d['deploys'][:3]], ln=[l.split('/')[-1] for l in d['links'][:2]], ask=d['ask'][:120], op=d['options'][:3], tr=trace(d['notes']))
 
 def auto_summary(sl, total):
     """Plain-text summary with [n] footnote refs (n = task number). Short, active sentences."""

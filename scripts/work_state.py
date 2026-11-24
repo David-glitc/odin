@@ -27,7 +27,7 @@ def clean(s, n):
 
 def new(t, text):
     return dict(t0=t, t1=t, goal=clean(text, 200), steps=[], frames=[], findings=[], decisions=[], reply='',
-                files=collections.OrderedDict(), commits=[], deploys=[], links=[], subagents=[], sessions=[], ask='', options=[])
+                files=collections.OrderedDict(), commits=[], deploys=[], links=[], subagents=[], sessions=[], ask='', options=[], notes=[])
 
 def apply_plan(d, i, t):
     st = d['steps']
@@ -49,6 +49,19 @@ def apply_plan(d, i, t):
             if 0 < n <= len(st): st[n-1]['s'] = 'completed'
         if i.get('start') and 0 < i['start'] <= len(st): st[i['start']-1]['s'] = 'in_progress'
     d['frames'].append([round(t / 60, 2), ''.join({'completed': 'd', 'in_progress': 'p'}.get(s['s'], '-') for s in st)])
+
+DECISION = re.compile(r"\b(because|so I|instead|rather than|decid\w*|chose|choos\w*|root cause|the cause|the problem|turns out|won't|can't|cannot|trade-?off|switch\w*|replac\w*|fix(?:ed|es)?)\b", re.I)
+
+def note(cur, text, t, kind):
+    """Keep short 'why' sentences the agent wrote between tool calls (or its thinking, when the transcript keeps it).
+    k = 'd' for a decision-like sentence (because, instead, root cause, ...), else 'n'."""
+    x = re.sub(r'\s+', ' ', re.sub(r'```.*?```|[`*#>]', '', text or '', flags=re.S)).strip()
+    if len(x) < 30: return
+    sents = re.split(r'(?<=[.!?])\s+', x)
+    x = ' '.join(sents[:2]) if len(x) > 300 else x
+    x = clean(x, 260)
+    if cur['notes'] and cur['notes'][-1]['x'] == x: return
+    cur['notes'].append(dict(t=round(t / 60, 1), x=x, k='d' if DECISION.search(x) else kind))
 
 def work(path):
     D, cur, t0, pend, ask = [], None, None, {}, None
@@ -84,6 +97,8 @@ def work(path):
         for b in c:
             bt = b.get('type')
             if bt == 'text' and len(b.get('text', '')) > 40: cur['reply'] = clean(re.sub(r'[`*#>]', '', b['text']), 360)
+            if bt == 'text': note(cur, b.get('text', ''), t, 'n')
+            elif bt == 'thinking' and (b.get('thinking') or '').strip(): note(cur, b['thinking'], t, 't')
             if bt != 'tool_use': continue
             n, i = b['name'], b.get('input') or {}; pend[b['id']] = n
             if n.endswith('update_plan') or n == 'TodoWrite': apply_plan(cur, i, t)
@@ -116,6 +131,8 @@ def work(path):
             elif n.endswith('start_session'):
                 cur['sessions'].append(clean(i.get('title') or i.get('prompt', ''), 60))
     for d in D:
+        r = d['reply'][:40]   # the closing reply is a finding, not a reasoning note
+        d['notes'] = [n for n in d['notes'] if not (r and n['x'].startswith(r))]
         if not d['findings'] and d['reply']: d['findings'].append(dict(t=round(d['t1'] / 60, 1), x=d['reply'], kind='reply'))
         d['t0'] = round(d['t0'] / 60, 1); d['t1'] = round(d['t1'] / 60, 1)
         d['files'] = dict(d['files']); d['deploys'] = list(dict.fromkeys(d['deploys'])); d['commits'] = list(dict.fromkeys(d['commits']))
